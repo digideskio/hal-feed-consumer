@@ -46,19 +46,19 @@ public class FeedConsumerScheduler
     {
         try
         {
-            LOG.info("Attempting to consume feed");
+            LOG.info("Invoking feed-consumer");
 
             consumer.consume();
 
-            LOG.info("Feed consumed successfully");
+            LOG.info("Feed-consumer returned normally");
         }
         catch (final AlreadyConsumingException e)
         {
-            LOG.info("Entry in feed already being consumed by another consumer...skipping");
+            LOG.info("Feed-consumer returned {} exception: another consumer is competing for the resouce", e);
         }
         catch (final Exception e)
         {
-            LOG.error("Failed to consume feed", e);
+            LOG.error("Caught feed-consumer failure", e);
         }
     }
 }

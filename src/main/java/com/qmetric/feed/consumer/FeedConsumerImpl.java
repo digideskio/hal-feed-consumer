@@ -3,12 +3,17 @@ package com.qmetric.feed.consumer;
 import com.google.common.base.Optional;
 import com.qmetric.feed.consumer.store.ConsumedStore;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
 
 public class FeedConsumerImpl implements FeedConsumer
 {
+
+    private static final Logger log = LoggerFactory.getLogger(FeedConsumerImpl.class);
+
     private final FeedEndpoint endpoint;
 
     private final UnconsumedFeedEntriesFinder finder;
@@ -33,6 +38,7 @@ public class FeedConsumerImpl implements FeedConsumer
 
         for (final ReadableRepresentation feedEntry : entries)
         {
+            log.debug("Consuming entry {}", feedEntry.getResourceLink().getHref());
             entryConsumer.consume(feedEntry);
         }
 

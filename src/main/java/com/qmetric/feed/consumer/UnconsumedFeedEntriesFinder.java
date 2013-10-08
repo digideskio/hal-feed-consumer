@@ -12,6 +12,8 @@ import com.theoryinpractise.halbuilder.api.RepresentationFactory;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
@@ -21,6 +23,8 @@ import static com.google.common.collect.Iterables.concat;
 
 class UnconsumedFeedEntriesFinder
 {
+    private static final Logger log = LoggerFactory.getLogger(UnconsumedFeedEntriesFinder.class);
+
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss");
 
     private final ConsumedStore consumedStore;
@@ -64,20 +68,41 @@ class UnconsumedFeedEntriesFinder
             return currentPage.isPresent();
         }
 
+        @Override public void remove()
+        {
+            throw new UnsupportedOperationException();
+        }
+
         @Override public List<? extends ReadableRepresentation> next()
         {
-            final List<? extends ReadableRepresentation> allFromPage = currentPage.get().getResourcesByRel("entries");
+            log.info("Reading feed-page {}", currentPageLink());
+
+            final List<? extends ReadableRepresentation> allFromPage = currentPageEntries();
 
             final List<? extends ReadableRepresentation> unconsumedFromPage = unconsumedFrom(allFromPage);
 
-            this.currentPage = allFromPage.size() == unconsumedFromPage.size() ? nextPage() : Optional.<ReadableRepresentation>absent();
+            flipPage(allFromPage, unconsumedFromPage);
 
             return unconsumedFromPage;
         }
 
-        @Override public void remove()
+        private List<? extends ReadableRepresentation> currentPageEntries()
         {
-            throw new UnsupportedOperationException();
+            return currentPage.get().getResourcesByRel("entries");
+        }
+
+        private void flipPage(final List<? extends ReadableRepresentation> allFromPage, final List<? extends ReadableRepresentation> unconsumedFromPage)
+        {
+            log.debug("Found {}/{} unconsumed entries", allFromPage.size(), unconsumedFromPage.size());
+
+            this.currentPage = allFromPage.size() == unconsumedFromPage.size() ? nextPage() : Optional.<ReadableRepresentation>absent();
+
+            log.debug("Next page: {}", currentPage);
+        }
+
+        private String currentPageLink()
+        {
+            return currentPage.isPresent() ? currentPage.get().getResourceLink().getHref() : "CURRENT PAGE FIELD IS ABSENT";
         }
 
         private Optional<ReadableRepresentation> nextPage()
@@ -96,16 +121,6 @@ class UnconsumedFeedEntriesFinder
             return Optional.fromNullable(readableRepresentation.getLinkByRel(NEXT_LINK_RELATION));
         }
 
-        private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)
-        {
-            return !earliestEntryLimit.isPresent() || earliestEntryLimit.get().date.isBefore(publishedDate(entry));
-        }
-
-        private DateTime publishedDate(final ReadableRepresentation entry)
-        {
-            return DATE_FORMATTER.parseDateTime((String) entry.getValue(PUBLISHED));
-        }
-
         private List<? extends ReadableRepresentation> unconsumedFrom(final List<? extends ReadableRepresentation> entries)
         {
             return from(entries).filter(new Predicate<ReadableRepresentation>()
@@ -113,6 +128,16 @@ class UnconsumedFeedEntriesFinder
                 public boolean apply(final ReadableRepresentation input)
                 {
                     return hasConsumablePublishedDate(input) && consumedStore.notAlreadyConsumed(input);
+                }
+
+                private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)
+                {
+                    return !earliestEntryLimit.isPresent() || earliestEntryLimit.get().date.isBefore(publishedDate(entry));
+                }
+
+                private DateTime publishedDate(final ReadableRepresentation entry)
+                {
+                    return DATE_FORMATTER.parseDateTime((String) entry.getValue(PUBLISHED));
                 }
             }).toList();
         }
