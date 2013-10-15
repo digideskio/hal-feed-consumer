@@ -52,13 +52,9 @@ public class FeedConsumerScheduler
 
             LOG.info("Feed-consumer returned normally");
         }
-        catch (final AlreadyConsumingException e)
-        {
-            LOG.info("Feed-consumer returned {} exception: another consumer is competing for the resouce", e);
-        }
         catch (final Exception e)
         {
-            LOG.error("Caught feed-consumer failure", e);
+            LOG.error("Caught feed-consumer exception", e);
         }
     }
 }

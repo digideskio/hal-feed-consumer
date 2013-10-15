@@ -1,12 +1,15 @@
 package com.qmetric.feed.consumer
 
 import com.google.common.base.Optional
+import com.google.common.io.Resources
+import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.ConsumedStore
 import spock.lang.Specification
 
-class FeedConsumerImplTest extends Specification {
+class FeedConsumerImplTest extends Specification
+{
 
-    final url = "http://host/feed"
+    private static final url = "http://host/feed"
 
     final endpoint = Mock(FeedEndpoint)
 
@@ -18,13 +21,12 @@ class FeedConsumerImplTest extends Specification {
 
     final feedEndpointFactory = Mock(FeedEndpointFactory)
 
-    def consumer
+    final FeedConsumerImpl consumer = new FeedConsumerImpl(url, feedEndpointFactory, entryConsumer, consumedStore, Optional.absent(), [listener])
 
     def setup()
     {
         feedEndpointFactory.create(url) >> endpoint
-        endpoint.get() >> new InputStreamReader(this.getClass().getResource('/feedWithEntry.json').openStream())
-        consumer = new FeedConsumerImpl(url, feedEndpointFactory, entryConsumer, consumedStore, Optional.absent(), [listener])
+        endpoint.get() >> reader('/feedWithThreeEntries.json')
     }
 
     def "should consume all unconsumed entries"()
@@ -36,7 +38,7 @@ class FeedConsumerImplTest extends Specification {
         consumer.consume()
 
         then:
-        1 * entryConsumer.consume(_)
+        3 * entryConsumer.consume(_)
     }
 
     def "should ignore already consumed entries"()
@@ -54,6 +56,19 @@ class FeedConsumerImplTest extends Specification {
     def "should notify listeners after polling feed for new entries"()
     {
         given:
+        consumedStore.notAlreadyConsumed(_) >> true
+
+        when:
+        consumer.consume()
+
+        then:
+        3 * entryConsumer.consume(_)
+        1 * listener.consumed({ List entries -> entries.size() == 3 })
+    }
+
+    def "should notify listeners after polling feed for new entries even if we have an empty list"()
+    {
+        given:
         consumedStore.notAlreadyConsumed(_) >> false
 
         when:
@@ -61,5 +76,36 @@ class FeedConsumerImplTest extends Specification {
 
         then:
         1 * listener.consumed([])
+    }
+
+    def "should skip entries already consumed by other consumers"()
+    {
+        given:
+        consumedStore.notAlreadyConsumed(_) >> true
+
+        when:
+        consumer.consume()
+
+        then:
+        1 * entryConsumer.consume(_) >> { throw new AlreadyConsumingException() }
+        2 * entryConsumer.consume(_)
+    }
+
+    def "should skip entries that can't be consumed"()
+    {
+        given:
+        consumedStore.notAlreadyConsumed(_) >> true
+
+        when:
+        consumer.consume()
+
+        then:
+        1 * entryConsumer.consume(_) >> { throw new RuntimeException() }
+        2 * entryConsumer.consume(_)
+    }
+
+    private static InputStreamReader reader(String resource)
+    {
+        new InputStreamReader(Resources.getResourceAsStream(resource), 'UTF-8')
     }
 }

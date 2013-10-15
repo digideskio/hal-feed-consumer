@@ -1,11 +1,13 @@
 package com.qmetric.feed.consumer
 
+import com.google.common.io.Resources
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.ConsumedStore
 import com.theoryinpractise.halbuilder.DefaultRepresentationFactory
 import spock.lang.Specification
 
-class EntryConsumerImplTest extends Specification {
+class EntryConsumerImplTest extends Specification
+{
 
     final consumeAction = Mock(ConsumeAction)
 
@@ -13,7 +15,7 @@ class EntryConsumerImplTest extends Specification {
 
     final listener = Mock(EntryConsumerListener)
 
-    final feedEntry = new DefaultRepresentationFactory().readRepresentation(new InputStreamReader(this.getClass().getResource('/feedWithEntry.json').openStream()))
+    final feedEntry = new DefaultRepresentationFactory().readRepresentation(reader('/feedWithOneEntry.json'))
 
     final consumer = new EntryConsumerImpl(consumedStore, consumeAction, [listener])
 
@@ -24,23 +26,17 @@ class EntryConsumerImplTest extends Specification {
 
         then:
         1 * consumedStore.markAsConsuming(_)
-
-        then:
         1 * consumeAction.consume(_)
-
-        then:
         1 * consumedStore.markAsConsumed(_)
     }
 
     def "should not consume entry if already being consumed by another consumer"()
     {
-        given:
-        consumedStore.markAsConsuming(_) >> { throw new AlreadyConsumingException() }
-
         when:
         consumer.consume(feedEntry)
 
         then:
+        1 * consumedStore.markAsConsuming(_) >> { throw new AlreadyConsumingException() }
         0 * consumeAction.consume(_)
         0 * consumedStore.markAsConsumed(_)
         0 * consumedStore.revertConsuming(_)
@@ -49,13 +45,11 @@ class EntryConsumerImplTest extends Specification {
 
     def "should revert consuming state if error occurs whilst consuming entry"()
     {
-        given:
-        consumeAction.consume(_) >> { throw new Exception() }
-
         when:
         consumer.consume(feedEntry)
 
         then:
+        1 * consumeAction.consume(_) >> { throw new Exception() }
         0 * consumedStore.markAsConsumed(_)
         1 * consumedStore.revertConsuming(_)
         thrown(Exception)
@@ -80,5 +74,10 @@ class EntryConsumerImplTest extends Specification {
 
         then:
         1 * listener.consumed(feedEntry)
+    }
+
+    private static InputStreamReader reader(String s)
+    {
+        new InputStreamReader(Resources.getResourceAsStream(s))
     }
 }

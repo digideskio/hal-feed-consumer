@@ -1,6 +1,7 @@
 package com.qmetric.feed.consumer;
 
 import com.google.common.base.Optional;
+import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.ConsumedStore;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
 import org.slf4j.Logger;
@@ -50,9 +51,25 @@ public class FeedConsumerImpl implements FeedConsumer
     {
         for (final ReadableRepresentation feedEntry : entries)
         {
-            log.debug("Consuming entry {}", feedEntry.getResourceLink().getHref());
-            entryConsumer.consume(feedEntry);
+            try
+            {
+                log.debug("Consuming entry {}", getHref(feedEntry));
+                entryConsumer.consume(feedEntry);
+            }
+            catch (AlreadyConsumingException e)
+            {
+                log.info("Entry {} already being consumed", getHref(feedEntry), e);
+            }
+            catch (Exception e)
+            {
+                log.warn("Entry {} failed processing", getHref(feedEntry), e);
+            }
         }
+    }
+
+    private String getHref(final ReadableRepresentation feedEntry)
+    {
+        return feedEntry.getResourceLink().getHref();
     }
 
     private List<ReadableRepresentation> unconsumed()
