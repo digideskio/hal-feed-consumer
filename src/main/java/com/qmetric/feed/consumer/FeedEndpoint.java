@@ -6,6 +6,8 @@ import com.sun.jersey.api.client.WebResource;
 import java.io.InputStreamReader;
 import java.io.Reader;
 
+import static com.google.common.base.Preconditions.checkState;
+import static com.sun.jersey.api.client.ClientResponse.Status.OK;
 import static com.theoryinpractise.halbuilder.api.RepresentationFactory.HAL_JSON;
 
 public class FeedEndpoint
@@ -20,8 +22,18 @@ public class FeedEndpoint
 
     public Reader get()
     {
-        final ClientResponse clientResponse = resource.accept(HAL_JSON).get(ClientResponse.class);
+        return new InputStreamReader(getClientResponse().getEntityInputStream());
+    }
 
-        return new InputStreamReader(clientResponse.getEntityInputStream());
+    private ClientResponse getClientResponse()
+    {
+        final ClientResponse clientResponse = resource.accept(HAL_JSON).get(ClientResponse.class);
+        check(clientResponse.getClientResponseStatus());
+        return clientResponse;
+    }
+
+    private void check(final ClientResponse.Status status)
+    {
+        checkState(status == OK, "Endpoint returned [%s: %s]", status.getStatusCode(), status.getReasonPhrase());
     }
 }
