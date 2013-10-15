@@ -34,17 +34,30 @@ public class FeedConsumerImpl implements FeedConsumer
     @Override
     public List<ReadableRepresentation> consume() throws Exception
     {
-        final List<ReadableRepresentation> entries = finder.findUnconsumed(endpoint);
+        return consume(unconsumed());
+    }
 
+    private List<ReadableRepresentation> consume(final List<ReadableRepresentation> entries) throws Exception
+    {
+        processEach(entries);
+
+        notifyAllListeners(entries);
+
+        return entries;
+    }
+
+    private void processEach(final List<ReadableRepresentation> entries) throws Exception
+    {
         for (final ReadableRepresentation feedEntry : entries)
         {
             log.debug("Consuming entry {}", feedEntry.getResourceLink().getHref());
             entryConsumer.consume(feedEntry);
         }
+    }
 
-        notifyAllListeners(entries);
-
-        return entries;
+    private List<ReadableRepresentation> unconsumed()
+    {
+        return finder.findUnconsumed(endpoint);
     }
 
     private void notifyAllListeners(final List<ReadableRepresentation> consumedEntries)
