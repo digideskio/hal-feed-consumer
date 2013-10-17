@@ -2,7 +2,6 @@ package com.qmetric.feed.consumer.multipleClientsTest
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
-import groovy.json.JsonOutput
 
 import static groovy.json.JsonOutput.toJson
 import static java.util.Collections.emptyMap

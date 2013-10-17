@@ -1,16 +1,16 @@
 package com.qmetric.feed.consumer.store;
 
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
-
-public interface ConsumedStore
+public interface ConsumedStore<T>
 {
     void checkConnectivity() throws ConnectivityException;
 
-    void markAsConsuming(final ReadableRepresentation feedEntry) throws AlreadyConsumingException;
+    void markAsConsuming(final T feedEntry) throws AlreadyConsumingException;
 
-    void revertConsuming(final ReadableRepresentation feedEntry);
+    void revertConsuming(final T feedEntry);
 
-    void markAsConsumed(ReadableRepresentation feedEntry);
+    void markAsConsumed(T feedEntry);
 
-    boolean notAlreadyConsumed(ReadableRepresentation feedEntry);
+    boolean notAlreadyConsumed(T feedEntry);
+
+    Iterable<T> getItemsToBeConsumed();
 }

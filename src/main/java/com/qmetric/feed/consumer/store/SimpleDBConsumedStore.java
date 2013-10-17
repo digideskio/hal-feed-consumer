@@ -12,11 +12,16 @@ import com.amazonaws.services.simpledb.model.PutAttributesRequest;
 import com.amazonaws.services.simpledb.model.ReplaceableAttribute;
 import com.amazonaws.services.simpledb.model.SelectRequest;
 import com.amazonaws.services.simpledb.model.UpdateCondition;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
+import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
+import com.theoryinpractise.halbuilder.api.Link;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+
+import javax.annotation.Nullable;
 
 import java.util.List;
 
@@ -24,21 +29,32 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.lang.String.format;
 import static org.joda.time.DateTime.now;
 
-public class SimpleDBConsumedStore implements ConsumedStore
+public class SimpleDBConsumedStore implements ConsumedStore<Link>
 {
+
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("yyyy/MM/dd HH:mm:ss");
 
     private static final String CONDITIONAL_CHECK_FAILED_ERROR_CODE = "ConditionalCheckFailed";
-
-    private static final String ID_PROPERTY = "_id";
 
     private static final String CONSUMED_DATE_ATTR = "consumed";
 
     private static final String CONSUMING_DATE_ATTR = "consuming";
 
-    private static final String SELECT_CONSUMED_ITEM = "select itemName() from `%s` where itemName() = '%s' and `%s` is not null limit 1";
+    private static final String SELECT_CONSUMED_ITEM = "select itemName() from `%s` where itemName() = '%s' and `" + CONSUMED_DATE_ATTR + "` is not null limit 1";
+
+    private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select itemName() from `%s` where `" + CONSUMED_DATE_ATTR +
+                                                              "` is null and `" + CONSUMING_DATE_ATTR +
+                                                              "` is null";
 
     public static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
+
+    public static final Function<Item,Link> ITEM_TO_LINK = new Function<Item, Link>()
+    {
+        @Nullable @Override public Link apply(final Item input)
+        {
+            return new Link(new DefaultRepresentationFactory(), "self", input.getName());
+        }
+    };
 
     private final AmazonSimpleDB simpleDBClient;
 
@@ -64,7 +80,7 @@ public class SimpleDBConsumedStore implements ConsumedStore
         }
     }
 
-    @Override public void markAsConsuming(final ReadableRepresentation feedEntry) throws AlreadyConsumingException
+    @Override public void markAsConsuming(final Link feedEntry) throws AlreadyConsumingException
     {
         try
         {
@@ -83,29 +99,40 @@ public class SimpleDBConsumedStore implements ConsumedStore
         }
     }
 
-    @Override public void revertConsuming(final ReadableRepresentation feedEntry)
+    @Override public void revertConsuming(final Link feedEntry)
     {
         run(new DeleteAttributesRequest(domain, getId(feedEntry), asList(attribute(CONSUMING_DATE_ATTR))));
     }
 
-    @Override public void markAsConsumed(final ReadableRepresentation feedEntry)
+    @Override public void markAsConsumed(final Link feedEntry)
     {
         run(new PutAttributesRequest(domain, getId(feedEntry), asList(withCurrentDate(CONSUMED_DATE_ATTR))));
     }
 
-    @Override public boolean notAlreadyConsumed(final ReadableRepresentation feedEntry)
+    @Override public boolean notAlreadyConsumed(final Link feedEntry)
     {
         return !getConsumedEntry(feedEntry).isPresent();
     }
 
-    private Optional<Item> getConsumedEntry(final ReadableRepresentation feedEntry)
+    @Override public Iterable<Link> getItemsToBeConsumed()
     {
-        return from(run(selectUnconsumed(feedEntry))).first();
+        return FluentIterable.from(run(selectToBeConsumed())).transform(ITEM_TO_LINK);
     }
 
-    private SelectRequest selectUnconsumed(final ReadableRepresentation feedEntry)
+    private Optional<Item> getConsumedEntry(final Link feedEntry)
     {
-        String query = format(SELECT_CONSUMED_ITEM, domain, getId(feedEntry), CONSUMED_DATE_ATTR);
+        return from(run(selectConsumed(feedEntry))).first();
+    }
+
+    private SelectRequest selectConsumed(final Link feedEntry)
+    {
+        String query = format(SELECT_CONSUMED_ITEM, domain, getId(feedEntry));
+        return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
+    }
+
+    private SelectRequest selectToBeConsumed()
+    {
+        String query = format(SELECT_ITEMS_TO_BE_CONSUMED, domain);
         return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
     }
 
@@ -154,8 +181,8 @@ public class SimpleDBConsumedStore implements ConsumedStore
         return DATE_FORMATTER.print(now());
     }
 
-    private static String getId(final ReadableRepresentation feedEntry)
+    private static String getId(final Link feedEntry)
     {
-        return (String) feedEntry.getValue(ID_PROPERTY);
+        return feedEntry.getHref();
     }
 }

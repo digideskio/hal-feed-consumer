@@ -6,7 +6,11 @@ import com.amazonaws.services.simpledb.model.*
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
 import spock.lang.Specification
 
-class SimpleDBConsumedStoreTest extends Specification {
+import static com.google.common.collect.Iterables.size
+import static net.java.quickcheck.generator.PrimitiveGeneratorsIterables.someObjects
+
+class SimpleDBConsumedStoreTest extends Specification
+{
 
     final feedEntryId = "1"
 
@@ -118,6 +122,25 @@ class SimpleDBConsumedStoreTest extends Specification {
 
         then:
         notConsumedResult
+    }
+
+    def "should return list of unconsumed entries"()
+    {
+        given:
+        def items = someItems()
+        selectResult.getItems() >> items
+        simpleDBClient.select(_) >> selectResult
+
+        when:
+        final notConsumedResult = consumedEntryStore.getItemsToBeConsumed()
+
+        then:
+        size(notConsumedResult) == size(items)
+    }
+
+    private static List<Item> someItems()
+    {
+        someObjects().collect { new Item() }
     }
 
     def "should know when connectivity to store is healthy"()

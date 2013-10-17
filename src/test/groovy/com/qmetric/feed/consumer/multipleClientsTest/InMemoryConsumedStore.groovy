@@ -3,11 +3,11 @@ package com.qmetric.feed.consumer.multipleClientsTest
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.ConnectivityException
 import com.qmetric.feed.consumer.store.ConsumedStore
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation
+import com.theoryinpractise.halbuilder.api.Link
 
 import static com.google.common.collect.Sets.difference
 
-class InMemoryConsumedStore implements ConsumedStore
+class InMemoryConsumedStore implements ConsumedStore<Link>
 {
 
     def consuming = new HashSet()
@@ -16,7 +16,7 @@ class InMemoryConsumedStore implements ConsumedStore
     @Override void checkConnectivity() throws ConnectivityException
     {}
 
-    @Override void markAsConsuming(final ReadableRepresentation feedEntry) throws AlreadyConsumingException
+    @Override void markAsConsuming(final Link feedEntry) throws AlreadyConsumingException
     {
         if (consuming.contains(feedEntry))
         {
@@ -25,19 +25,24 @@ class InMemoryConsumedStore implements ConsumedStore
         consuming.add(feedEntry)
     }
 
-    @Override void revertConsuming(final ReadableRepresentation feedEntry)
+    @Override void revertConsuming(final Link feedEntry)
     {
         consuming.remove(feedEntry)
     }
 
-    @Override void markAsConsumed(final ReadableRepresentation feedEntry)
+    @Override void markAsConsumed(final Link feedEntry)
     {
         consumed.add(feedEntry)
     }
 
-    @Override boolean notAlreadyConsumed(final ReadableRepresentation feedEntry)
+    @Override boolean notAlreadyConsumed(final Link feedEntry)
     {
         return !consumed.contains(feedEntry)
+    }
+
+    @Override Iterable<Link> getItemsToBeConsumed()
+    {
+        throw new UnsupportedOperationException()
     }
 
     int getConsumedCount()

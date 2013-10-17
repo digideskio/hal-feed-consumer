@@ -1,6 +1,5 @@
 package com.qmetric.feed.consumer;
 
-import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
