@@ -3,22 +3,22 @@ package com.qmetric.feed.consumer.store
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.simpledb.AmazonSimpleDB
 import com.amazonaws.services.simpledb.model.*
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation
+import com.theoryinpractise.halbuilder.api.Link
+import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import spock.lang.Specification
 
 import static com.google.common.collect.Iterables.size
+import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
 import static net.java.quickcheck.generator.PrimitiveGeneratorsIterables.someObjects
 
 class SimpleDBConsumedStoreTest extends Specification
 {
 
-    final feedEntryId = "1"
+    final feedHref = anyNonEmptyString()
 
-    final domain = "domain"
+    final domain = anyNonEmptyString()
 
-    final feedEntry = Mock(ReadableRepresentation)
-
-    final selectResult = Mock(SelectResult)
+    final feedEntry = new Link(Mock(RepresentationFactory), 'self', feedHref)
 
     final simpleDBClient = Mock(AmazonSimpleDB)
 
@@ -26,28 +26,22 @@ class SimpleDBConsumedStoreTest extends Specification
 
     def "should store entry with consuming state only if not already consumed"()
     {
-        given:
-        feedEntry.getValue("_id") >> feedEntryId
-
         when:
         consumedEntryStore.markAsConsuming(feedEntry)
 
         then:
-        simpleDBClient.putAttributes(_) >> {
-            final request = (it[0] as PutAttributesRequest)
-
-            assert request.domainName == domain
-            assert request.itemName == feedEntryId
-            assert request.attributes.size() == 1
-            assert request.attributes.get(0).getName() == "consuming"
-            assert request.expected.name == "consuming" && !request.expected.exists
+        1 * simpleDBClient.putAttributes(_) >> { PutAttributesRequest r ->
+            assert r.domainName == domain
+            assert r.itemName == feedHref
+            assert r.attributes.size() == 1
+            assert r.attributes.get(0).name == "consuming"
+            assert r.expected.name == "consuming" && !r.expected.exists
         }
     }
 
     def "should throw AlreadyConsumingException when attempting to set consuming state for entry already being consumed by another consumer"()
     {
         given:
-        feedEntry.getValue("_id") >> feedEntryId
         simpleDBClient.putAttributes(_) >> {
             final error = new AmazonServiceException("Conditional check failed. Attribute (consuming) value exists")
             error.setErrorCode("ConditionalCheckFailed")
@@ -63,64 +57,49 @@ class SimpleDBConsumedStoreTest extends Specification
 
     def "should revert entry as being in consuming state"()
     {
-        given:
-        feedEntry.getValue("_id") >> feedEntryId
-
         when:
         consumedEntryStore.revertConsuming(feedEntry)
 
         then:
-        simpleDBClient.deleteAttributes(_) >> {
-            final request = (it[0] as DeleteAttributesRequest)
-            assert request.domainName == domain
-            assert request.itemName == feedEntryId
-            assert request.attributes.size() == 1
-            assert request.attributes.get(0).getName() == "consuming"
+        1 * simpleDBClient.deleteAttributes(_) >> { DeleteAttributesRequest r ->
+            assert r.domainName == domain
+            assert r.itemName == feedHref
+            assert r.attributes.size() == 1
+            assert r.attributes.get(0).getName() == "consuming"
         }
     }
 
     def "should store entry with consumed state"()
     {
-        given:
-        feedEntry.getValue("_id") >> feedEntryId
-
         when:
         consumedEntryStore.markAsConsumed(feedEntry)
 
         then:
-        simpleDBClient.putAttributes(_) >> {
-            final request = (it[0] as PutAttributesRequest)
-
-            assert request.domainName == domain
-            assert request.itemName == feedEntryId
-            assert request.attributes.size() == 1
-            assert request.attributes.get(0).getName() == "consumed"
+        simpleDBClient.putAttributes(_) >> { PutAttributesRequest r ->
+            assert r.domainName == domain
+            assert r.itemName == feedHref
+            assert r.attributes.size() == 1
+            assert r.attributes.get(0).getName() == "consumed"
         }
     }
 
     def "should return whether entry has already been consumed"()
     {
-        given:
-        selectResult.getItems() >> [new Item()]
-        simpleDBClient.select(_) >> selectResult
-
         when:
         final notConsumedResult = consumedEntryStore.notAlreadyConsumed(feedEntry)
 
         then:
+        1 * simpleDBClient.select(_) >> new SelectResult().withItems(new Item())
         !notConsumedResult
     }
 
     def "should return whether entry has not yet been consumed"()
     {
-        given:
-        selectResult.getItems() >> []
-        simpleDBClient.select(_) >> selectResult
-
         when:
         final notConsumedResult = consumedEntryStore.notAlreadyConsumed(feedEntry)
 
         then:
+        1 * simpleDBClient.select(_) >> new SelectResult()
         notConsumedResult
     }
 
@@ -128,19 +107,13 @@ class SimpleDBConsumedStoreTest extends Specification
     {
         given:
         def items = someItems()
-        selectResult.getItems() >> items
-        simpleDBClient.select(_) >> selectResult
 
         when:
-        final notConsumedResult = consumedEntryStore.getItemsToBeConsumed()
+        def notConsumedResult = consumedEntryStore.getItemsToBeConsumed()
 
         then:
+        1 * simpleDBClient.select(_) >> new SelectResult().withItems(items)
         size(notConsumedResult) == size(items)
-    }
-
-    private static List<Item> someItems()
-    {
-        someObjects().collect { new Item() }
     }
 
     def "should know when connectivity to store is healthy"()
@@ -154,13 +127,16 @@ class SimpleDBConsumedStoreTest extends Specification
 
     def "should know when connectivity to store is unhealthy"()
     {
-        given:
-        simpleDBClient.domainMetadata(new DomainMetadataRequest(domain)) >> { throw new Exception() }
-
         when:
         consumedEntryStore.checkConnectivity()
 
         then:
+        1 * simpleDBClient.domainMetadata(new DomainMetadataRequest(domain)) >> { throw new Exception() }
         thrown(ConnectivityException)
+    }
+
+    private static List<Item> someItems()
+    {
+        someObjects().collect { new Item() }
     }
 }
