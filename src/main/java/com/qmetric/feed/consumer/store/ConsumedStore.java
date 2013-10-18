@@ -1,16 +1,18 @@
 package com.qmetric.feed.consumer.store;
 
-public interface ConsumedStore<T>
+import com.theoryinpractise.halbuilder.api.Link;
+
+public interface ConsumedStore
 {
     void checkConnectivity() throws ConnectivityException;
 
-    void markAsConsuming(final T feedEntry) throws AlreadyConsumingException;
+    void markAsConsuming(final Link feedEntry) throws AlreadyConsumingException;
 
-    void revertConsuming(final T feedEntry);
+    void revertConsuming(final Link feedEntry);
 
-    void markAsConsumed(T feedEntry);
+    void markAsConsumed(Link feedEntry);
 
-    boolean notAlreadyConsumed(T feedEntry);
+    boolean notAlreadyConsumed(Link feedEntry);
 
-    Iterable<T> getItemsToBeConsumed();
+    Iterable<Link> getItemsToBeConsumed();
 }

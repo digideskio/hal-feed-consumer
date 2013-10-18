@@ -23,13 +23,13 @@ public class EntryConsumerImpl implements EntryConsumer
             .withWaitStrategy(fixedWait(1, SECONDS)) //
             .withStopStrategy(stopAfterAttempt(60));
 
-    private final ConsumedStore<Link> consumedStore;
+    private final ConsumedStore consumedStore;
 
     private final ConsumeAction consumeAction;
 
     private final Collection<EntryConsumerListener> listeners;
 
-    public EntryConsumerImpl(final ConsumedStore<Link> consumedStore, final ConsumeAction consumeAction, final Collection<EntryConsumerListener> listeners)
+    public EntryConsumerImpl(final ConsumedStore consumedStore, final ConsumeAction consumeAction, final Collection<EntryConsumerListener> listeners)
     {
         this.consumedStore = consumedStore;
         this.consumeAction = consumeAction;

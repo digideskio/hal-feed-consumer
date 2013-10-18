@@ -29,7 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.lang.String.format;
 import static org.joda.time.DateTime.now;
 
-public class SimpleDBConsumedStore implements ConsumedStore<Link>
+public class SimpleDBConsumedStore implements ConsumedStore
 {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("yyyy/MM/dd HH:mm:ss");

@@ -127,7 +127,7 @@ class UnconsumedFeedEntriesFinder
             {
                 public boolean apply(final ReadableRepresentation input)
                 {
-                    return hasConsumablePublishedDate(input) && consumedStore.notAlreadyConsumed(input);
+                    return hasConsumablePublishedDate(input) && consumedStore.notAlreadyConsumed(input.getResourceLink());
                 }
 
                 private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)

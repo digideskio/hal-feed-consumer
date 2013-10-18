@@ -7,7 +7,7 @@ import com.theoryinpractise.halbuilder.api.Link
 
 import static com.google.common.collect.Sets.difference
 
-class InMemoryConsumedStore implements ConsumedStore<Link>
+class InMemoryConsumedStore implements ConsumedStore
 {
 
     def consuming = new HashSet()
