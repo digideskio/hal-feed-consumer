@@ -21,12 +21,13 @@ class FeedConsumerImplTest extends Specification
 
     final feedEndpointFactory = Mock(FeedEndpointFactory)
 
-    final FeedConsumerImpl consumer = new FeedConsumerImpl(url, feedEndpointFactory, entryConsumer, consumedStore, Optional.absent(), [listener])
+    FeedConsumerImpl consumer
 
     def setup()
     {
         feedEndpointFactory.create(url) >> endpoint
         endpoint.get() >> reader('/feedWithThreeEntries.json')
+        consumer = new FeedConsumerImpl(url, feedEndpointFactory, entryConsumer, consumedStore, Optional.absent(), [listener])
     }
 
     def "should consume all unconsumed entries"()
