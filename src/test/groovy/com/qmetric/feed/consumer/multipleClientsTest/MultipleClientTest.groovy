@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpServer
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
 import org.junit.AfterClass
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import sun.net.httpserver.DefaultHttpServerProvider
 
@@ -21,6 +22,7 @@ import static java.util.concurrent.TimeUnit.*
 import static org.hamcrest.core.IsEqual.equalTo
 import static org.junit.Assert.assertThat
 
+@Ignore
 class MultipleClientTest
 {
     private static final FEED_SIZE = 9
