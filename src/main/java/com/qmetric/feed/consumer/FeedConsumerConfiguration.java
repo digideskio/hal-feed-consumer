@@ -23,9 +23,9 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 public class FeedConsumerConfiguration
 {
-    private final Collection<FeedPollingListener> feedPollingListeners = new ArrayList<FeedPollingListener>();
+    private final Collection<FeedPollingListener_> feedPollingListeners = new ArrayList<FeedPollingListener_>();
 
-    private final Collection<EntryConsumerListener> entryConsumerListeners = new ArrayList<EntryConsumerListener>();
+    private final Collection<EntryConsumerListener_> entryConsumerListeners = new ArrayList<EntryConsumerListener_>();
 
     private final Client feedClient = new Client();
 
@@ -47,6 +47,8 @@ public class FeedConsumerConfiguration
 
     private Optional<EarliestEntryLimit> earliestEntryLimit = Optional.absent();
 
+    private ResourceResolver resourceResolver = new DefaultResourceResolver(feedEndpointFactory);
+
     public FeedConsumerConfiguration fromUrl(final String feedUrl)
     {
         this.feedUrl = feedUrl;
@@ -57,6 +59,13 @@ public class FeedConsumerConfiguration
     public FeedConsumerConfiguration consumeEachEntryWith(final ConsumeAction consumeAction)
     {
         this.consumeAction = consumeAction;
+
+        return this;
+    }
+
+    public FeedConsumerConfiguration withResourceResolver(final ResourceResolver resourceResolver)
+    {
+        this.resourceResolver = resourceResolver;
 
         return this;
     }
@@ -89,7 +98,7 @@ public class FeedConsumerConfiguration
         return this;
     }
 
-    public FeedConsumerConfiguration withListeners(final EntryConsumerListener... listeners)
+    public FeedConsumerConfiguration withListeners(final EntryConsumerListener_... listeners)
     {
         entryConsumerListeners.addAll(asList(listeners));
 
@@ -133,11 +142,11 @@ public class FeedConsumerConfiguration
 
         configureHealthChecks();
 
-        final EntryConsumer entryConsumer = new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, entryConsumerListeners));
+        final EntryConsumer_ entryConsumer =
+                new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl_(feedTracker, consumeAction, resourceResolver, entryConsumerListeners));
 
-        final FeedConsumer consumer = new FeedConsumerWithMetrics(metricRegistry,
-                                                                  new FeedConsumerImpl(feedUrl, feedEndpointFactory, entryConsumer, feedTracker, earliestEntryLimit,
-                                                                                       feedPollingListeners));
+        final FeedConsumer_ next = new FeedConsumerImpl_(entryConsumer, feedTracker, feedPollingListeners);
+        final FeedConsumer_ consumer = new FeedConsumerWithMetrics(metricRegistry, next);
 
         new FeedConsumerScheduler(consumer, pollingInterval).start();
 

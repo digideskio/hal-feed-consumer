@@ -4,12 +4,12 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingWindowReservoir;
 import com.codahale.metrics.Timer;
-import com.qmetric.feed.consumer.FeedConsumer;
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
+import com.qmetric.feed.consumer.FeedConsumer_;
+import com.theoryinpractise.halbuilder.api.Link;
 
 import java.util.List;
 
-public class FeedConsumerWithMetrics implements FeedConsumer
+public class FeedConsumerWithMetrics implements FeedConsumer_
 {
     private static final int MAX_SAMPLES = 100;
 
@@ -21,9 +21,9 @@ public class FeedConsumerWithMetrics implements FeedConsumer
 
     private final Meter numberOfConsumedEntries;
 
-    private final FeedConsumer next;
+    private final FeedConsumer_ next;
 
-    public FeedConsumerWithMetrics(final MetricRegistry metricRegistry, final FeedConsumer next)
+    public FeedConsumerWithMetrics(final MetricRegistry metricRegistry, final FeedConsumer_ next)
     {
         consumptionTimer = metricRegistry.register("feedPolling.timeTaken", new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
         consumptionErrors = metricRegistry.meter("feedPolling.errors");
@@ -33,13 +33,13 @@ public class FeedConsumerWithMetrics implements FeedConsumer
         this.next = next;
     }
 
-    @Override public List<ReadableRepresentation> consume() throws Exception
+    @Override public List<Link> consume() throws Exception
     {
         final Timer.Context context = consumptionTimer.time();
 
         try
         {
-            final List<ReadableRepresentation> consumed = next.consume();
+            final List<Link> consumed = next.consume();
 
             numberOfConsumedEntries.mark(consumed.size());
 

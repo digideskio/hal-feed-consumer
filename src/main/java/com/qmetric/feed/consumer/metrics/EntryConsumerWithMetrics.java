@@ -4,10 +4,10 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingWindowReservoir;
 import com.codahale.metrics.Timer;
-import com.qmetric.feed.consumer.EntryConsumer;
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
+import com.qmetric.feed.consumer.EntryConsumer_;
+import com.theoryinpractise.halbuilder.api.Link;
 
-public class EntryConsumerWithMetrics implements EntryConsumer
+public class EntryConsumerWithMetrics implements EntryConsumer_
 {
     private static final int MAX_SAMPLES = 100;
 
@@ -17,9 +17,9 @@ public class EntryConsumerWithMetrics implements EntryConsumer
 
     private final Meter successMeter;
 
-    private final EntryConsumer next;
+    private final EntryConsumer_ next;
 
-    public EntryConsumerWithMetrics(final MetricRegistry metricRegistry, final EntryConsumer next)
+    public EntryConsumerWithMetrics(final MetricRegistry metricRegistry, final EntryConsumer_ next)
     {
         timer = metricRegistry.register("entryConsumption.timeTaken", new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
         errorMeter = metricRegistry.meter("entryConsumption.errors");
@@ -28,7 +28,7 @@ public class EntryConsumerWithMetrics implements EntryConsumer
         this.next = next;
     }
 
-    @Override public void consume(final ReadableRepresentation feedEntry) throws Exception
+    @Override public void consume(final Link feedEntry) throws Exception
     {
         final Timer.Context context = timer.time();
 

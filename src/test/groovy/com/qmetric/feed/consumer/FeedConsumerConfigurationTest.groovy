@@ -10,7 +10,8 @@ import spock.lang.Specification
 import java.util.concurrent.TimeUnit
 
 @SuppressWarnings("GroovyAccessibility")
-class FeedConsumerConfigurationTest extends Specification {
+class FeedConsumerConfigurationTest extends Specification
+{
 
     final feedConsumerConfiguration = new FeedConsumerConfiguration()
 
@@ -71,7 +72,7 @@ class FeedConsumerConfigurationTest extends Specification {
     def "should accept listeners"()
     {
         given:
-        final listener = Mock(EntryConsumerListener)
+        final listener = Mock(EntryConsumerListener_)
 
         when:
         feedConsumerConfiguration.withListeners(listener)
@@ -125,5 +126,17 @@ class FeedConsumerConfigurationTest extends Specification {
 
         then:
         registry.register("", healthCheck)
+    }
+
+    def "should accept resource resolver"()
+    {
+        given:
+        final resourceResolver = Mock(ResourceResolver)
+
+        when:
+        feedConsumerConfiguration.withResourceResolver(resourceResolver)
+
+        then:
+        feedConsumerConfiguration.resourceResolver == resourceResolver
     }
 }

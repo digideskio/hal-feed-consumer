@@ -1,17 +1,18 @@
 package com.qmetric.feed.consumer.metrics
 
 import com.qmetric.feed.consumer.Interval
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation
+import com.theoryinpractise.halbuilder.api.Link
+import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import org.joda.time.DateTime
 import spock.lang.Specification
 import spock.lang.Unroll
 
 import static java.util.concurrent.TimeUnit.MINUTES
 import static java.util.concurrent.TimeUnit.SECONDS
+import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
-class PollingActivityHealthCheckTest extends Specification {
-
-    final testDates = new TestDates([])
+class PollingActivityHealthCheckTest extends Specification
+{
 
     final dateTimeSource = Mock(PollingActivityHealthCheck.DateTimeSource)
 
@@ -31,14 +32,13 @@ class PollingActivityHealthCheckTest extends Specification {
     {
         given:
         final healthCheck = new PollingActivityHealthCheck(interval, dateTimeSource)
-        dateTimeSource.now() >>> testDates.lastConsumed(lastConsumedDate).currentDate(currentDate).get()
-        healthCheck.consumed(_ as ReadableRepresentation)
+        dateTimeSource.now() >>> [lastConsumedDate, currentDate]
 
         when:
-        final result = healthCheck.check()
+        healthCheck.consumed(anyLink())
 
         then:
-        result.isHealthy() == expectedHealthyResult
+        healthCheck.check().isHealthy() == expectedHealthyResult
 
         where:
         interval                 | lastConsumedDate                      | currentDate                             | expectedHealthyResult
@@ -49,29 +49,8 @@ class PollingActivityHealthCheckTest extends Specification {
         new Interval(1, SECONDS) | new DateTime(2013, 7, 19, 0, 0, 0, 0) | new DateTime(2013, 7, 19, 0, 0, 2, 0)   | false
     }
 
-    private class TestDates {
-        final dates = []
-
-        private TestDates(dates)
-        {
-            this.dates = dates
-        }
-
-        def lastConsumed(final dateTime)
-        {
-            dates.add(dateTime)
-            return new TestDates(dates)
-        }
-
-        def currentDate(final dateTime)
-        {
-            dates.add(dateTime)
-            return new TestDates(dates)
-        }
-
-        def get()
-        {
-            dates
-        }
+    private Link anyLink()
+    {
+        new Link(Mock(RepresentationFactory), anyString(), anyString())
     }
 }
