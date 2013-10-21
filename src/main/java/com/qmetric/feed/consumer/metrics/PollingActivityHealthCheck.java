@@ -2,8 +2,8 @@ package com.qmetric.feed.consumer.metrics;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Optional;
-import com.qmetric.feed.consumer.EntryConsumerListener_;
-import com.qmetric.feed.consumer.FeedPollingListener_;
+import com.qmetric.feed.consumer.EntryConsumerListener;
+import com.qmetric.feed.consumer.FeedPollingListener;
 import com.qmetric.feed.consumer.Interval;
 import com.theoryinpractise.halbuilder.api.Link;
 import org.joda.time.DateTime;
@@ -16,7 +16,7 @@ import java.util.List;
 import static com.codahale.metrics.health.HealthCheck.Result.healthy;
 import static com.codahale.metrics.health.HealthCheck.Result.unhealthy;
 
-public class PollingActivityHealthCheck extends HealthCheck implements FeedPollingListener_, EntryConsumerListener_
+public class PollingActivityHealthCheck extends HealthCheck implements FeedPollingListener, EntryConsumerListener
 {
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormat.fullDateTime();
 

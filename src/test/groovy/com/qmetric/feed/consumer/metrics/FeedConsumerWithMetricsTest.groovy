@@ -3,15 +3,15 @@ package com.qmetric.feed.consumer.metrics
 import com.codahale.metrics.Meter
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
+
 import com.qmetric.feed.consumer.FeedConsumer
-import com.qmetric.feed.consumer.FeedConsumer_
 import spock.lang.Specification
 
 class FeedConsumerWithMetricsTest extends Specification {
 
     final metricRegistry = Mock(MetricRegistry)
 
-    final consumer = Mock(FeedConsumer_)
+    final consumer = Mock(FeedConsumer)
 
     final timer = Mock(Timer)
 

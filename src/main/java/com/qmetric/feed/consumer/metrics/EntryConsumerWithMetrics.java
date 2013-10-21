@@ -4,10 +4,10 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingWindowReservoir;
 import com.codahale.metrics.Timer;
-import com.qmetric.feed.consumer.EntryConsumer_;
+import com.qmetric.feed.consumer.EntryConsumer;
 import com.theoryinpractise.halbuilder.api.Link;
 
-public class EntryConsumerWithMetrics implements EntryConsumer_
+public class EntryConsumerWithMetrics implements EntryConsumer
 {
     private static final int MAX_SAMPLES = 100;
 
@@ -17,9 +17,9 @@ public class EntryConsumerWithMetrics implements EntryConsumer_
 
     private final Meter successMeter;
 
-    private final EntryConsumer_ next;
+    private final EntryConsumer next;
 
-    public EntryConsumerWithMetrics(final MetricRegistry metricRegistry, final EntryConsumer_ next)
+    public EntryConsumerWithMetrics(final MetricRegistry metricRegistry, final EntryConsumer next)
     {
         timer = metricRegistry.register("entryConsumption.timeTaken", new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
         errorMeter = metricRegistry.meter("entryConsumption.errors");

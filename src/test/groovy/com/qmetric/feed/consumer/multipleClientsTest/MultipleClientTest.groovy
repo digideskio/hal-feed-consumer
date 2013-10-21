@@ -15,7 +15,6 @@ import javax.annotation.Nullable
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
-import static com.google.common.base.Optional.absent
 import static java.lang.Thread.currentThread
 import static java.util.Collections.emptyList
 import static java.util.concurrent.TimeUnit.*
@@ -34,6 +33,7 @@ class MultipleClientTest
 
     private static final endpointFactory = new FeedEndpointFactory(new Client(),
                                                                    new FeedEndpointFactory.ConnectioTimeout(MINUTES, 1))
+    private static final resolver = new DefaultResourceResolver(endpointFactory)
 
     @BeforeClass public static void startFeedServer()
     {
@@ -92,13 +92,8 @@ class MultipleClientTest
 
     private static FeedConsumer newConsumer(ConsumeAction action)
     {
-        def entryConsumer = new EntryConsumerImpl(store, action, emptyList())
-        new FeedConsumerImpl("http://localhost:${FEED_SERVER_PORT}/feed", //
-                             endpointFactory,
-                             entryConsumer, //
-                             store, //
-                             absent(), //
-                             emptyList())
+        def entryConsumer = new EntryConsumerImpl(store, action, resolver, emptyList())
+        new FeedConsumerImpl(entryConsumer, store, emptyList())
     }
 
     private static Runnable newRunnable(consumer)

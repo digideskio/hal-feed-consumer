@@ -72,7 +72,7 @@ class FeedConsumerConfigurationTest extends Specification
     def "should accept listeners"()
     {
         given:
-        final listener = Mock(EntryConsumerListener_)
+        final listener = Mock(EntryConsumerListener)
 
         when:
         feedConsumerConfiguration.withListeners(listener)

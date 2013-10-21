@@ -23,9 +23,9 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 public class FeedConsumerConfiguration
 {
-    private final Collection<FeedPollingListener_> feedPollingListeners = new ArrayList<FeedPollingListener_>();
+    private final Collection<FeedPollingListener> feedPollingListeners = new ArrayList<FeedPollingListener>();
 
-    private final Collection<EntryConsumerListener_> entryConsumerListeners = new ArrayList<EntryConsumerListener_>();
+    private final Collection<EntryConsumerListener> entryConsumerListeners = new ArrayList<EntryConsumerListener>();
 
     private final Client feedClient = new Client();
 
@@ -98,7 +98,7 @@ public class FeedConsumerConfiguration
         return this;
     }
 
-    public FeedConsumerConfiguration withListeners(final EntryConsumerListener_... listeners)
+    public FeedConsumerConfiguration withListeners(final EntryConsumerListener... listeners)
     {
         entryConsumerListeners.addAll(asList(listeners));
 
@@ -142,11 +142,11 @@ public class FeedConsumerConfiguration
 
         configureHealthChecks();
 
-        final EntryConsumer_ entryConsumer =
-                new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl_(feedTracker, consumeAction, resourceResolver, entryConsumerListeners));
+        final EntryConsumer entryConsumer =
+                new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, entryConsumerListeners));
 
-        final FeedConsumer_ next = new FeedConsumerImpl_(entryConsumer, feedTracker, feedPollingListeners);
-        final FeedConsumer_ consumer = new FeedConsumerWithMetrics(metricRegistry, next);
+        final FeedConsumer next = new FeedConsumerImpl(entryConsumer, feedTracker, feedPollingListeners);
+        final FeedConsumer consumer = new FeedConsumerWithMetrics(metricRegistry, next);
 
         new FeedConsumerScheduler(consumer, pollingInterval).start();
 

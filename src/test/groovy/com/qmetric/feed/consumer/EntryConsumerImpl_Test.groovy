@@ -18,9 +18,9 @@ class EntryConsumerImpl_Test extends Specification
 
     final feedTracker = Mock(FeedTracker)
 
-    final listener = Mock(EntryConsumerListener_)
+    final listener = Mock(EntryConsumerListener)
 
-    final consumer = new EntryConsumerImpl_(feedTracker, consumeAction, resourceResolver, [listener])
+    final consumer = new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, [listener])
 
     def link = new Link(Mock(RepresentationFactory), anyString(), anyString())
     def resource = Mock(ReadableRepresentation)

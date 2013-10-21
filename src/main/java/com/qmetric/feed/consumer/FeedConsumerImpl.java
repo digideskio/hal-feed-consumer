@@ -1,44 +1,41 @@
 package com.qmetric.feed.consumer;
 
-import com.google.common.base.Optional;
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.FeedTracker;
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
+import com.theoryinpractise.halbuilder.api.Link;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
 
+import static com.google.common.collect.FluentIterable.from;
+
 public class FeedConsumerImpl implements FeedConsumer
 {
 
     private static final Logger log = LoggerFactory.getLogger(FeedConsumerImpl.class);
 
-    private final FeedEndpoint endpoint;
-
-    private final UnconsumedFeedEntriesFinder finder;
-
     private final EntryConsumer entryConsumer;
+
+    private final FeedTracker feedTracker;
 
     private final Collection<FeedPollingListener> listeners;
 
-    public FeedConsumerImpl(final String feedUrl, final FeedEndpointFactory endpointFactory, final EntryConsumer entryConsumer, final FeedTracker feedTracker,
-                            final Optional<EarliestEntryLimit> earliestEntryLimit, final Collection<FeedPollingListener> listeners)
+    public FeedConsumerImpl(final EntryConsumer entryConsumer, final FeedTracker feedTracker, final Collection<FeedPollingListener> listeners)
     {
         this.entryConsumer = entryConsumer;
+        this.feedTracker = feedTracker;
         this.listeners = listeners;
-        this.endpoint = endpointFactory.create(feedUrl);
-        this.finder = new UnconsumedFeedEntriesFinder(endpointFactory, feedTracker, earliestEntryLimit);
     }
 
     @Override
-    public List<ReadableRepresentation> consume() throws Exception
+    public List<Link> consume() throws Exception
     {
         return consume(unconsumed());
     }
 
-    private List<ReadableRepresentation> consume(final List<ReadableRepresentation> entries) throws Exception
+    private List<Link> consume(final List<Link> entries) throws Exception
     {
         processEach(entries);
 
@@ -47,9 +44,9 @@ public class FeedConsumerImpl implements FeedConsumer
         return entries;
     }
 
-    private void processEach(final List<ReadableRepresentation> entries) throws Exception
+    private void processEach(final List<Link> entries) throws Exception
     {
-        for (final ReadableRepresentation feedEntry : entries)
+        for (final Link feedEntry : entries)
         {
             try
             {
@@ -67,17 +64,17 @@ public class FeedConsumerImpl implements FeedConsumer
         }
     }
 
-    private String getHref(final ReadableRepresentation feedEntry)
+    private String getHref(final Link feedEntry)
     {
-        return feedEntry.getResourceLink().getHref();
+        return feedEntry.getHref();
     }
 
-    private List<ReadableRepresentation> unconsumed()
+    private List<Link> unconsumed()
     {
-        return finder.findUnconsumed(endpoint);
+        return from(feedTracker.getItemsToBeConsumed()).toList();
     }
 
-    private void notifyAllListeners(final List<ReadableRepresentation> consumedEntries)
+    private void notifyAllListeners(final List<Link> consumedEntries)
     {
         for (final FeedPollingListener listener : listeners)
         {

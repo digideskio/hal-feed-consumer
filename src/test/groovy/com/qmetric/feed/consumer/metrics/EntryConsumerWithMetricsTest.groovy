@@ -3,7 +3,7 @@ package com.qmetric.feed.consumer.metrics
 import com.codahale.metrics.Meter
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
-import com.qmetric.feed.consumer.EntryConsumer_
+import com.qmetric.feed.consumer.EntryConsumer
 import com.theoryinpractise.halbuilder.api.Link
 import spock.lang.Specification
 
@@ -12,7 +12,7 @@ class EntryConsumerWithMetricsTest extends Specification
 
     final metricRegistry = Mock(MetricRegistry)
 
-    final entryConsumer = Mock(EntryConsumer_)
+    final entryConsumer = Mock(EntryConsumer)
 
     final link = Mock(Link)
 

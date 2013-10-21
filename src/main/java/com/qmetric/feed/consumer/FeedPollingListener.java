@@ -1,10 +1,10 @@
 package com.qmetric.feed.consumer;
 
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
+import com.theoryinpractise.halbuilder.api.Link;
 
 import java.util.List;
 
 public interface FeedPollingListener
 {
-    void consumed(final List<ReadableRepresentation> consumedEntries);
+    void consumed(final List<Link> consumedEntries);
 }

@@ -12,7 +12,7 @@ class FeedConsumerSchedulerTest extends Specification
 
     final schedulerExecutionService = Mock(ScheduledExecutorService)
 
-    final consumer = Mock(FeedConsumerImpl_)
+    final consumer = Mock(FeedConsumerImpl)
 
     final scheduler = new FeedConsumerScheduler(consumer, interval, schedulerExecutionService)
 

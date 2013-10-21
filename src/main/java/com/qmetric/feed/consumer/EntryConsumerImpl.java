@@ -4,6 +4,7 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.RetryerBuilder;
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.FeedTracker;
+import com.theoryinpractise.halbuilder.api.Link;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
 
 import java.util.Collection;
@@ -25,59 +26,68 @@ public class EntryConsumerImpl implements EntryConsumer
 
     private final ConsumeAction consumeAction;
 
+    private final ResourceResolver resourceResolver;
+
     private final Collection<EntryConsumerListener> listeners;
 
-    public EntryConsumerImpl(final FeedTracker feedTracker, final ConsumeAction consumeAction, final Collection<EntryConsumerListener> listeners)
+    public EntryConsumerImpl(final FeedTracker feedTracker, final ConsumeAction consumeAction, final ResourceResolver resourceResolver,
+                             final Collection<EntryConsumerListener> listeners)
     {
         this.feedTracker = feedTracker;
         this.consumeAction = consumeAction;
+        this.resourceResolver = resourceResolver;
         this.listeners = listeners;
     }
 
     @Override
-    public void consume(ReadableRepresentation feedEntry) throws Exception
+    public void consume(Link link) throws Exception
     {
-        markAsConsuming(feedEntry);
+        markAsConsuming(link);
 
-        process(feedEntry);
+        process(link);
 
-        markAsConsumed(feedEntry);
+        markAsConsumed(link);
 
-        notifyAllListeners(feedEntry);
+        notifyAllListeners(link);
     }
 
-    private void markAsConsuming(final ReadableRepresentation feedEntry) throws AlreadyConsumingException
+    private void markAsConsuming(final Link link) throws AlreadyConsumingException
     {
-        feedTracker.markAsConsuming(feedEntry.getResourceLink());
+        feedTracker.markAsConsuming(link);
     }
 
-    private void process(final ReadableRepresentation feedEntry) throws Exception
+    private void process(final Link link) throws Exception
     {
         try
         {
-            consumeAction.consume(feedEntry);
+            consumeAction.consume(fetchFeedEntry(link));
         }
         catch (final Exception e)
         {
-            feedTracker.revertConsuming(feedEntry.getResourceLink());
+            feedTracker.revertConsuming(link);
 
             throw e;
         }
     }
 
-    private void markAsConsumed(final ReadableRepresentation feedEntry) throws ExecutionException, RetryException
+    private ReadableRepresentation fetchFeedEntry(final Link link)
+    {
+        return resourceResolver.resolve(link);
+    }
+
+    private void markAsConsumed(final Link feedEntry) throws ExecutionException, RetryException
     {
         RETRY_BUILDER.build().call(new Callable<Void>()
         {
             @Override public Void call() throws Exception
             {
-                feedTracker.markAsConsumed(feedEntry.getResourceLink());
+                feedTracker.markAsConsumed(feedEntry);
                 return null;
             }
         });
     }
 
-    private void notifyAllListeners(final ReadableRepresentation consumedEntry)
+    private void notifyAllListeners(final Link consumedEntry)
     {
         for (final EntryConsumerListener listener : listeners)
         {

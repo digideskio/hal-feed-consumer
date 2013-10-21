@@ -11,18 +11,18 @@ import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyInteger
 class FeedConsumerImpl_Test extends Specification
 {
 
-    final entryConsumer = Mock(EntryConsumer_)
+    final entryConsumer = Mock(EntryConsumer)
 
     final feedTracker = Mock(FeedTracker)
 
-    final listener = Mock(FeedPollingListener_)
+    final listener = Mock(FeedPollingListener)
 
 
-    FeedConsumerImpl_ consumer
+    FeedConsumerImpl consumer
 
     def setup()
     {
-        consumer = new FeedConsumerImpl_(entryConsumer, feedTracker, [listener])
+        consumer = new FeedConsumerImpl(entryConsumer, feedTracker, [listener])
     }
 
     def "should consume provided unconsumed entries in sequence and notify the listeners"()

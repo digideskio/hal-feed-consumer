@@ -4,12 +4,12 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingWindowReservoir;
 import com.codahale.metrics.Timer;
-import com.qmetric.feed.consumer.FeedConsumer_;
+import com.qmetric.feed.consumer.FeedConsumer;
 import com.theoryinpractise.halbuilder.api.Link;
 
 import java.util.List;
 
-public class FeedConsumerWithMetrics implements FeedConsumer_
+public class FeedConsumerWithMetrics implements FeedConsumer
 {
     private static final int MAX_SAMPLES = 100;
 
@@ -21,9 +21,9 @@ public class FeedConsumerWithMetrics implements FeedConsumer_
 
     private final Meter numberOfConsumedEntries;
 
-    private final FeedConsumer_ next;
+    private final FeedConsumer next;
 
-    public FeedConsumerWithMetrics(final MetricRegistry metricRegistry, final FeedConsumer_ next)
+    public FeedConsumerWithMetrics(final MetricRegistry metricRegistry, final FeedConsumer next)
     {
         consumptionTimer = metricRegistry.register("feedPolling.timeTaken", new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
         consumptionErrors = metricRegistry.meter("feedPolling.errors");
