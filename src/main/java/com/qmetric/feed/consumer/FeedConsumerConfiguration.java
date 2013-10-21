@@ -9,7 +9,7 @@ import com.qmetric.feed.consumer.metrics.EntryConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.FeedConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.FeedConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.PollingActivityHealthCheck;
-import com.qmetric.feed.consumer.store.ConsumedStore;
+import com.qmetric.feed.consumer.store.FeedTracker;
 import com.sun.jersey.api.client.Client;
 import org.joda.time.DateTime;
 
@@ -43,7 +43,7 @@ public class FeedConsumerConfiguration
 
     private ConsumeAction consumeAction;
 
-    private ConsumedStore consumedStore;
+    private FeedTracker feedTracker;
 
     private Optional<EarliestEntryLimit> earliestEntryLimit = Optional.absent();
 
@@ -75,9 +75,9 @@ public class FeedConsumerConfiguration
         return this;
     }
 
-    public FeedConsumerConfiguration withConsumedStore(final ConsumedStore consumedStore)
+    public FeedConsumerConfiguration withConsumedStore(final FeedTracker feedTracker)
     {
-        this.consumedStore = consumedStore;
+        this.feedTracker = feedTracker;
 
         return this;
     }
@@ -133,10 +133,10 @@ public class FeedConsumerConfiguration
 
         configureHealthChecks();
 
-        final EntryConsumer entryConsumer = new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(consumedStore, consumeAction, entryConsumerListeners));
+        final EntryConsumer entryConsumer = new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, entryConsumerListeners));
 
         final FeedConsumer consumer = new FeedConsumerWithMetrics(metricRegistry,
-                                                                  new FeedConsumerImpl(feedUrl, feedEndpointFactory, entryConsumer, consumedStore, earliestEntryLimit,
+                                                                  new FeedConsumerImpl(feedUrl, feedEndpointFactory, entryConsumer, feedTracker, earliestEntryLimit,
                                                                                        feedPollingListeners));
 
         new FeedConsumerScheduler(consumer, pollingInterval).start();
@@ -149,14 +149,14 @@ public class FeedConsumerConfiguration
         checkNotNull(feedUrl, "Missing feed url");
         checkNotNull(pollingInterval, "Missing polling interval");
         checkNotNull(consumeAction, "Missing entry consumer action");
-        checkNotNull(consumedStore, "Missing consumed store");
+        checkNotNull(feedTracker, "Missing consumed store");
     }
 
     private void configureHealthChecks()
     {
         healthCheckRegistry.register("Feed connectivity", new FeedConnectivityHealthCheck(feedUrl, feedClient));
 
-        healthCheckRegistry.register("Consumed store connectivity", new ConsumedStoreConnectivityHealthCheck(consumedStore));
+        healthCheckRegistry.register("Consumed store connectivity", new ConsumedStoreConnectivityHealthCheck(feedTracker));
 
         if (pollingActivityHealthCheck.isPresent())
         {

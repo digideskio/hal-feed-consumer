@@ -2,7 +2,7 @@ package com.qmetric.feed.consumer;
 
 import com.google.common.base.Optional;
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
-import com.qmetric.feed.consumer.store.ConsumedStore;
+import com.qmetric.feed.consumer.store.FeedTracker;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,13 +23,13 @@ public class FeedConsumerImpl implements FeedConsumer
 
     private final Collection<FeedPollingListener> listeners;
 
-    public FeedConsumerImpl(final String feedUrl, final FeedEndpointFactory endpointFactory, final EntryConsumer entryConsumer, final ConsumedStore consumedStore,
+    public FeedConsumerImpl(final String feedUrl, final FeedEndpointFactory endpointFactory, final EntryConsumer entryConsumer, final FeedTracker feedTracker,
                             final Optional<EarliestEntryLimit> earliestEntryLimit, final Collection<FeedPollingListener> listeners)
     {
         this.entryConsumer = entryConsumer;
         this.listeners = listeners;
         this.endpoint = endpointFactory.create(feedUrl);
-        this.finder = new UnconsumedFeedEntriesFinder(endpointFactory, consumedStore, earliestEntryLimit);
+        this.finder = new UnconsumedFeedEntriesFinder(endpointFactory, feedTracker, earliestEntryLimit);
     }
 
     @Override

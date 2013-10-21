@@ -22,7 +22,7 @@ class SimpleDBConsumedStoreTest extends Specification
 
     final simpleDBClient = Mock(AmazonSimpleDB)
 
-    final consumedEntryStore = new SimpleDBConsumedStore(simpleDBClient, domain)
+    final consumedEntryStore = new SimpleDBFeedTracker(simpleDBClient, domain)
 
     def "should store entry with consuming state only if not already consumed"()
     {

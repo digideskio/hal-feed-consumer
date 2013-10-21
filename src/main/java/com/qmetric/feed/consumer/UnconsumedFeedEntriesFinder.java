@@ -4,7 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.qmetric.feed.consumer.store.ConsumedStore;
+import com.qmetric.feed.consumer.store.FeedTracker;
 import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
 import com.theoryinpractise.halbuilder.api.Link;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
@@ -27,7 +27,7 @@ class UnconsumedFeedEntriesFinder
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss");
 
-    private final ConsumedStore consumedStore;
+    private final FeedTracker feedTracker;
 
     private final Optional<EarliestEntryLimit> earliestEntryLimit;
 
@@ -35,9 +35,9 @@ class UnconsumedFeedEntriesFinder
 
     private final FeedEndpointFactory feedEndpointFactory;
 
-    UnconsumedFeedEntriesFinder(final FeedEndpointFactory feedEndpointFactory, final ConsumedStore consumedStore, final Optional<EarliestEntryLimit> earliestEntryLimit)
+    UnconsumedFeedEntriesFinder(final FeedEndpointFactory feedEndpointFactory, final FeedTracker feedTracker, final Optional<EarliestEntryLimit> earliestEntryLimit)
     {
-        this.consumedStore = consumedStore;
+        this.feedTracker = feedTracker;
         this.earliestEntryLimit = earliestEntryLimit;
         this.representationFactory = new DefaultRepresentationFactory();
         this.feedEndpointFactory = feedEndpointFactory;
@@ -127,7 +127,7 @@ class UnconsumedFeedEntriesFinder
             {
                 public boolean apply(final ReadableRepresentation input)
                 {
-                    return hasConsumablePublishedDate(input) && consumedStore.notAlreadyConsumed(input.getResourceLink());
+                    return hasConsumablePublishedDate(input) && feedTracker.notAlreadyConsumed(input.getResourceLink());
                 }
 
                 private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)

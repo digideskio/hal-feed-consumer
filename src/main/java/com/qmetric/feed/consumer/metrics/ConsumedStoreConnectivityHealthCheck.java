@@ -1,25 +1,25 @@
 package com.qmetric.feed.consumer.metrics;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.qmetric.feed.consumer.store.ConsumedStore;
+import com.qmetric.feed.consumer.store.FeedTracker;
 
 import static com.codahale.metrics.health.HealthCheck.Result.healthy;
 import static com.codahale.metrics.health.HealthCheck.Result.unhealthy;
 
 public class ConsumedStoreConnectivityHealthCheck extends HealthCheck
 {
-    private final ConsumedStore consumedStore;
+    private final FeedTracker feedTracker;
 
-    public ConsumedStoreConnectivityHealthCheck(final ConsumedStore consumedStore)
+    public ConsumedStoreConnectivityHealthCheck(final FeedTracker feedTracker)
     {
-        this.consumedStore = consumedStore;
+        this.feedTracker = feedTracker;
     }
 
     @Override protected Result check() throws Exception
     {
         try
         {
-            consumedStore.checkConnectivity();
+            feedTracker.checkConnectivity();
 
             return healthy("Consumed store connectivity is healthy");
         }

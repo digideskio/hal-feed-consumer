@@ -2,7 +2,7 @@ package com.qmetric.feed.consumer
 
 import com.google.common.io.Resources
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
-import com.qmetric.feed.consumer.store.ConsumedStore
+import com.qmetric.feed.consumer.store.FeedTracker
 import com.theoryinpractise.halbuilder.DefaultRepresentationFactory
 import spock.lang.Specification
 
@@ -11,7 +11,7 @@ class EntryConsumerImplTest extends Specification
 
     final consumeAction = Mock(ConsumeAction)
 
-    final consumedStore = Mock(ConsumedStore)
+    final consumedStore = Mock(FeedTracker)
 
     final listener = Mock(EntryConsumerListener)
 

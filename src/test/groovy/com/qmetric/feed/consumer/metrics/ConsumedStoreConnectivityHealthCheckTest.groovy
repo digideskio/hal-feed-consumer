@@ -1,12 +1,12 @@
 package com.qmetric.feed.consumer.metrics
 
 import com.qmetric.feed.consumer.store.ConnectivityException
-import com.qmetric.feed.consumer.store.ConsumedStore
+import com.qmetric.feed.consumer.store.FeedTracker
 import spock.lang.Specification
 
 class ConsumedStoreConnectivityHealthCheckTest extends Specification {
 
-    final consumedStore = Mock(ConsumedStore)
+    final consumedStore = Mock(FeedTracker)
 
     final simpleDBHealthCheck = new ConsumedStoreConnectivityHealthCheck(consumedStore)
 

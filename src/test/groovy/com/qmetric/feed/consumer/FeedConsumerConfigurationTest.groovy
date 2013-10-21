@@ -3,7 +3,7 @@ package com.qmetric.feed.consumer
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry
-import com.qmetric.feed.consumer.store.ConsumedStore
+import com.qmetric.feed.consumer.store.FeedTracker
 import org.joda.time.DateTime
 import spock.lang.Specification
 
@@ -47,13 +47,13 @@ class FeedConsumerConfigurationTest extends Specification {
     def "should accept consumed entry store"()
     {
         given:
-        final consumedStore = Mock(ConsumedStore)
+        final consumedStore = Mock(FeedTracker)
 
         when:
         feedConsumerConfiguration.withConsumedStore(consumedStore)
 
         then:
-        feedConsumerConfiguration.consumedStore == consumedStore
+        feedConsumerConfiguration.feedTracker == consumedStore
     }
 
     def "should earliest published date limit"()

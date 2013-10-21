@@ -2,7 +2,7 @@ package com.qmetric.feed.consumer
 
 import com.google.common.base.Optional
 import com.google.common.io.Resources
-import com.qmetric.feed.consumer.store.ConsumedStore
+import com.qmetric.feed.consumer.store.FeedTracker
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
 import org.joda.time.DateTime
 import spock.lang.Ignore
@@ -17,7 +17,7 @@ class UnconsumedFeedEntriesFinderTest extends Specification
 
     def thirdPageEndpoint = Mock(FeedEndpoint)
 
-    def consumedStore = Mock(ConsumedStore)
+    def consumedStore = Mock(FeedTracker)
 
     def feedEndpointFactory = Mock(FeedEndpointFactory)
 

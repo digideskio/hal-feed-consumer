@@ -2,7 +2,7 @@ package com.qmetric.feed.consumer.store;
 
 import com.theoryinpractise.halbuilder.api.Link;
 
-public interface ConsumedStore
+public interface FeedTracker
 {
     void checkConnectivity() throws ConnectivityException;
 

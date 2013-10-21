@@ -26,7 +26,7 @@ class MultipleClientTest
     private static final FEED_SIZE = 9
     private static final PAGE_SIZE = 3
     private static final FEED_SERVER_PORT = 15000
-    private static final store = new InMemoryConsumedStore()
+    private static final store = new InMemoryFeedTracker()
     private static final feedServer = getMockFeedServer(FEED_SERVER_PORT)
     private static final executor = Executors.newFixedThreadPool(2)
 

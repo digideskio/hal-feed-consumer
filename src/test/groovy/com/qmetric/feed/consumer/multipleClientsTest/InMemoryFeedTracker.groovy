@@ -2,12 +2,12 @@ package com.qmetric.feed.consumer.multipleClientsTest
 
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.ConnectivityException
-import com.qmetric.feed.consumer.store.ConsumedStore
+import com.qmetric.feed.consumer.store.FeedTracker
 import com.theoryinpractise.halbuilder.api.Link
 
 import static com.google.common.collect.Sets.difference
 
-class InMemoryConsumedStore implements ConsumedStore
+class InMemoryFeedTracker implements FeedTracker
 {
 
     def consuming = new HashSet()

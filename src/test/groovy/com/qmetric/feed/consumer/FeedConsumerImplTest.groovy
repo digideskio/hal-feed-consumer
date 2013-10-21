@@ -3,7 +3,7 @@ package com.qmetric.feed.consumer
 import com.google.common.base.Optional
 import com.google.common.io.Resources
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
-import com.qmetric.feed.consumer.store.ConsumedStore
+import com.qmetric.feed.consumer.store.FeedTracker
 import spock.lang.Specification
 
 class FeedConsumerImplTest extends Specification
@@ -15,7 +15,7 @@ class FeedConsumerImplTest extends Specification
 
     final entryConsumer = Mock(EntryConsumer)
 
-    final consumedStore = Mock(ConsumedStore)
+    final consumedStore = Mock(FeedTracker)
 
     final listener = Mock(FeedPollingListener)
 
