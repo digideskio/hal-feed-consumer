@@ -86,7 +86,7 @@ class SimpleDBConsumedStoreTest extends Specification
     def "should return whether entry has already been consumed"()
     {
         when:
-        final notConsumedResult = consumedEntryStore.notAlreadyConsumed(feedEntry)
+        final notConsumedResult = consumedEntryStore.isTracked(feedEntry)
 
         then:
         1 * simpleDBClient.select(_) >> new SelectResult().withItems(new Item())
@@ -96,7 +96,7 @@ class SimpleDBConsumedStoreTest extends Specification
     def "should return whether entry has not yet been consumed"()
     {
         when:
-        final notConsumedResult = consumedEntryStore.notAlreadyConsumed(feedEntry)
+        final notConsumedResult = consumedEntryStore.isTracked(feedEntry)
 
         then:
         1 * simpleDBClient.select(_) >> new SelectResult()

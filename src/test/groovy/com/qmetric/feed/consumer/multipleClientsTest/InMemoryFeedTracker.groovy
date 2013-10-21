@@ -5,8 +5,6 @@ import com.qmetric.feed.consumer.store.ConnectivityException
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.theoryinpractise.halbuilder.api.Link
 
-import static com.google.common.collect.Sets.difference
-
 class InMemoryFeedTracker implements FeedTracker
 {
 
@@ -35,10 +33,14 @@ class InMemoryFeedTracker implements FeedTracker
         consumed.add(feedEntry)
     }
 
-    @Override boolean notAlreadyConsumed(final Link feedEntry)
+    @Override boolean isTracked(final Link feedEntry)
     {
+        // TODO tracked/consumed symmetry is not true anymore
         return !consumed.contains(feedEntry)
     }
+
+    @Override void track(final Link link)
+    {}
 
     @Override Iterable<Link> getItemsToBeConsumed()
     {
@@ -53,10 +55,5 @@ class InMemoryFeedTracker implements FeedTracker
     int getConsumingCount()
     {
         consuming.size()
-    }
-
-    boolean hasUnconsumedEntries()
-    {
-        difference(consuming, consumed).size() > 0
     }
 }

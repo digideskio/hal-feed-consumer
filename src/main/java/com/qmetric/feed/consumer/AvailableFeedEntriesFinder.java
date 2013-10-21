@@ -21,9 +21,9 @@ import java.util.List;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 
-class UnconsumedFeedEntriesFinder
+class AvailableFeedEntriesFinder
 {
-    private static final Logger log = LoggerFactory.getLogger(UnconsumedFeedEntriesFinder.class);
+    private static final Logger log = LoggerFactory.getLogger(AvailableFeedEntriesFinder.class);
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss");
 
@@ -35,7 +35,7 @@ class UnconsumedFeedEntriesFinder
 
     private final FeedEndpointFactory feedEndpointFactory;
 
-    UnconsumedFeedEntriesFinder(final FeedEndpointFactory feedEndpointFactory, final FeedTracker feedTracker, final Optional<EarliestEntryLimit> earliestEntryLimit)
+    AvailableFeedEntriesFinder(final FeedEndpointFactory feedEndpointFactory, final FeedTracker feedTracker, final Optional<EarliestEntryLimit> earliestEntryLimit)
     {
         this.feedTracker = feedTracker;
         this.earliestEntryLimit = earliestEntryLimit;
@@ -43,7 +43,20 @@ class UnconsumedFeedEntriesFinder
         this.feedEndpointFactory = feedEndpointFactory;
     }
 
-    List<ReadableRepresentation> findUnconsumed(final FeedEndpoint latestPageEndpoint)
+    void findUnconsumed(final FeedEndpoint endpoint)
+    {
+        trackAll(newEntries(endpoint));
+    }
+
+    private void trackAll(final ImmutableList<ReadableRepresentation> newEntries)
+    {
+        for (ReadableRepresentation e : newEntries)
+        {
+            feedTracker.track(e.getResourceLink());
+        }
+    }
+
+    private ImmutableList<ReadableRepresentation> newEntries(final FeedEndpoint latestPageEndpoint)
     {
         return from(concat(ImmutableList.copyOf(new UnconsumedPageIterator(latestPageEndpoint)))) //
                 .toList() //
@@ -79,11 +92,11 @@ class UnconsumedFeedEntriesFinder
 
             final List<? extends ReadableRepresentation> allFromPage = currentPageEntries();
 
-            final List<? extends ReadableRepresentation> unconsumedFromPage = unconsumedFrom(allFromPage);
+            final List<? extends ReadableRepresentation> newEntries = newEntries(allFromPage);
 
-            flipPage(allFromPage, unconsumedFromPage);
+            flipPage(allFromPage, newEntries);
 
-            return unconsumedFromPage;
+            return newEntries;
         }
 
         private List<? extends ReadableRepresentation> currentPageEntries()
@@ -121,13 +134,13 @@ class UnconsumedFeedEntriesFinder
             return Optional.fromNullable(readableRepresentation.getLinkByRel(NEXT_LINK_RELATION));
         }
 
-        private List<? extends ReadableRepresentation> unconsumedFrom(final List<? extends ReadableRepresentation> entries)
+        private List<? extends ReadableRepresentation> newEntries(final List<? extends ReadableRepresentation> entries)
         {
             return from(entries).filter(new Predicate<ReadableRepresentation>()
             {
                 public boolean apply(final ReadableRepresentation input)
                 {
-                    return hasConsumablePublishedDate(input) && feedTracker.notAlreadyConsumed(input.getResourceLink());
+                    return hasConsumablePublishedDate(input) && feedTracker.isTracked(input.getResourceLink());
                 }
 
                 private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)

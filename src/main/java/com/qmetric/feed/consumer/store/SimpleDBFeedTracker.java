@@ -109,9 +109,13 @@ public class SimpleDBFeedTracker implements FeedTracker
         run(new PutAttributesRequest(domain, getId(feedEntry), asList(withCurrentDate(CONSUMED_DATE_ATTR))));
     }
 
-    @Override public boolean notAlreadyConsumed(final Link feedEntry)
+    @Override public boolean isTracked(final Link feedEntry)
     {
         return !getConsumedEntry(feedEntry).isPresent();
+    }
+
+    @Override public void track(final Link link)
+    {
     }
 
     @Override public Iterable<Link> getItemsToBeConsumed()
