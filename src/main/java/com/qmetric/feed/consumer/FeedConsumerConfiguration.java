@@ -84,10 +84,18 @@ public class FeedConsumerConfiguration
         return this;
     }
 
+    /**
+     * @deprecated Use {@code withFeedTracker} instead
+     */
+    @Deprecated
     public FeedConsumerConfiguration withConsumedStore(final FeedTracker feedTracker)
     {
-        this.feedTracker = feedTracker;
+        return withFeedTracker(feedTracker);
+    }
 
+    private FeedConsumerConfiguration withFeedTracker(final FeedTracker feedTracker)
+    {
+        this.feedTracker = feedTracker;
         return this;
     }
 
@@ -142,15 +150,30 @@ public class FeedConsumerConfiguration
 
         configureHealthChecks();
 
-        final EntryConsumer entryConsumer =
-                new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, entryConsumerListeners));
-
-        final FeedConsumer next = new FeedConsumerImpl(entryConsumer, feedTracker, feedPollingListeners);
-        final FeedConsumer consumer = new FeedConsumerWithMetrics(metricRegistry, next);
-
-        new FeedConsumerScheduler(consumer, pollingInterval).start();
+        startConsumerScheduler();
 
         return this;
+    }
+
+    private void startConsumerScheduler()
+    {
+        new FeedConsumerScheduler(feedConsumer(), feedEntriesFinder(), pollingInterval).start();
+    }
+
+    private AvailableFeedEntriesFinder feedEntriesFinder()
+    {
+        return new AvailableFeedEntriesFinder(feedEndpointFactory.create(feedUrl), feedEndpointFactory, feedTracker, earliestEntryLimit);
+    }
+
+    private FeedConsumer feedConsumer()
+    {
+        final FeedConsumer consumer = new FeedConsumerImpl(entryconsumer(), feedTracker, feedPollingListeners);
+        return new FeedConsumerWithMetrics(metricRegistry, consumer);
+    }
+
+    private EntryConsumerWithMetrics entryconsumer()
+    {
+        return new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, entryConsumerListeners));
     }
 
     private void validateConfiguration()

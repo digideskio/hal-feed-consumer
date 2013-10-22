@@ -17,16 +17,20 @@ public class FeedConsumerScheduler
 
     private final ScheduledExecutorService scheduledExecutorService;
 
-    public FeedConsumerScheduler(final FeedConsumer consumer, final Interval interval)
+    private final AvailableFeedEntriesFinder feedEntriesFinder;
+
+    public FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval)
     {
-        this(consumer, interval, newSingleThreadScheduledExecutor());
+        this(consumer, feedEntriesFinder, interval, newSingleThreadScheduledExecutor());
     }
 
-    FeedConsumerScheduler(final FeedConsumer consumer, final Interval interval, final ScheduledExecutorService scheduledExecutorService)
+    FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval,
+                          final ScheduledExecutorService scheduledExecutorService)
     {
         this.consumer = consumer;
         this.interval = interval;
         this.scheduledExecutorService = scheduledExecutorService;
+        this.feedEntriesFinder = feedEntriesFinder;
     }
 
     public void start()
@@ -36,9 +40,34 @@ public class FeedConsumerScheduler
             @Override
             public void run()
             {
-                consume();
+                updateTracker();
             }
         }, 0, interval.time, interval.unit);
+
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                consume();
+            }
+        }, interval.time / 2, interval.time, interval.unit);
+    }
+
+    private void updateTracker()
+    {
+        try
+        {
+            LOG.info("Running entry-finder");
+
+            feedEntriesFinder.findNewEntries();
+
+            LOG.info("entry-finder returned normally");
+        }
+        catch (final Exception e)
+        {
+            LOG.error("entry-finder exception", e);
+        }
     }
 
     private void consume()
@@ -53,7 +82,7 @@ public class FeedConsumerScheduler
         }
         catch (final Exception e)
         {
-            LOG.error("Caught feed-consumer exception", e);
+            LOG.error("feed-consumer exception", e);
         }
     }
 }

@@ -27,6 +27,8 @@ class AvailableFeedEntriesFinder
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss");
 
+    private final FeedEndpoint endpoint;
+
     private final FeedTracker feedTracker;
 
     private final Optional<EarliestEntryLimit> earliestEntryLimit;
@@ -35,17 +37,18 @@ class AvailableFeedEntriesFinder
 
     private final FeedEndpointFactory feedEndpointFactory;
 
-    AvailableFeedEntriesFinder(final FeedEndpointFactory feedEndpointFactory, final FeedTracker feedTracker, final Optional<EarliestEntryLimit> earliestEntryLimit)
+    AvailableFeedEntriesFinder(final FeedEndpoint endpoint, final FeedEndpointFactory feedEndpointFactory, final FeedTracker feedTracker, final Optional<EarliestEntryLimit> earliestEntryLimit)
     {
+        this.endpoint = endpoint;
         this.feedTracker = feedTracker;
         this.earliestEntryLimit = earliestEntryLimit;
         this.representationFactory = new DefaultRepresentationFactory();
         this.feedEndpointFactory = feedEndpointFactory;
     }
 
-    void findUnconsumed(final FeedEndpoint endpoint)
+    public void findNewEntries()
     {
-        trackAll(newEntries(endpoint));
+        trackAll(newEntries());
     }
 
     private void trackAll(final ImmutableList<ReadableRepresentation> newEntries)
@@ -56,9 +59,9 @@ class AvailableFeedEntriesFinder
         }
     }
 
-    private ImmutableList<ReadableRepresentation> newEntries(final FeedEndpoint latestPageEndpoint)
+    private ImmutableList<ReadableRepresentation> newEntries()
     {
-        return from(concat(ImmutableList.copyOf(new UnconsumedPageIterator(latestPageEndpoint)))) //
+        return from(concat(ImmutableList.copyOf(new UnconsumedPageIterator()))) //
                 .toList() //
                 .reverse();
     }
@@ -71,9 +74,9 @@ class AvailableFeedEntriesFinder
 
         private Optional<ReadableRepresentation> currentPage;
 
-        UnconsumedPageIterator(final FeedEndpoint latestPageEndpoint)
+        UnconsumedPageIterator()
         {
-            currentPage = Optional.of(representationFactory.readRepresentation(latestPageEndpoint.get()));
+            currentPage = Optional.of(representationFactory.readRepresentation(endpoint.get()));
         }
 
         @Override public boolean hasNext()
