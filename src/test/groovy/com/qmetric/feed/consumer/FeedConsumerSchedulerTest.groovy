@@ -10,11 +10,12 @@ class FeedConsumerSchedulerTest extends Specification
 
     final interval = new Interval(1, TimeUnit.MINUTES)
 
-    final schedulerExecutionService = Mock(ScheduledExecutorService)
+    final scheduledExecutionService = Mock(ScheduledExecutorService)
 
     final consumer = Mock(FeedConsumerImpl)
+    final finder = Mock(AvailableFeedEntriesFinder)
 
-    final scheduler = new FeedConsumerScheduler(consumer, interval, schedulerExecutionService)
+    final scheduler = new FeedConsumerScheduler(consumer, finder, interval, scheduledExecutionService)
 
     def "should periodically consume feed"()
     {
@@ -22,19 +23,28 @@ class FeedConsumerSchedulerTest extends Specification
         scheduler.start()
 
         then:
-        1 * schedulerExecutionService.scheduleAtFixedRate(_, 0, interval.time, interval.unit)
+        1 * scheduledExecutionService.scheduleAtFixedRate(_ as Runnable, 0, interval.time, interval.unit)
     }
 
     def "should catch any exception when consuming feed"()
     {
-        given:
-        consumer.consume() >> { throw new Exception() }
-
-        //noinspection GroovyAccessibility
         when:
+        //noinspection GroovyAccessibility
         scheduler.consume()
 
         then:
+        1 * consumer.consume() >> { throw new Exception() }
+        notThrown(Exception)
+    }
+
+    def "should catch any exception when updating feed-tracker"()
+    {
+        when:
+        //noinspection GroovyAccessibility
+        scheduler.updateTracker()
+
+        then:
+        1 * finder.findNewEntries() >> { throw new Exception() }
         notThrown(Exception)
     }
 }

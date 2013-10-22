@@ -41,17 +41,9 @@ public class FeedConsumerScheduler
             public void run()
             {
                 updateTracker();
-            }
-        }, 0, interval.time, interval.unit);
-
-        scheduledExecutorService.scheduleAtFixedRate(new Runnable()
-        {
-            @Override
-            public void run()
-            {
                 consume();
             }
-        }, interval.time / 2, interval.time, interval.unit);
+        }, 0, interval.time, interval.unit);
     }
 
     private void updateTracker()
