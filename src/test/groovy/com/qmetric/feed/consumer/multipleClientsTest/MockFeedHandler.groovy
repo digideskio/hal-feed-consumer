@@ -1,55 +1,44 @@
 package com.qmetric.feed.consumer.multipleClientsTest
 
-import com.sun.net.httpserver.HttpExchange
-import com.sun.net.httpserver.HttpHandler
+import spark.Request
+import spark.Response
+import spark.Route
 
 import static groovy.json.JsonOutput.toJson
-import static java.util.Collections.emptyMap
 import static org.apache.commons.lang3.StringUtils.isBlank
 
-class MockFeedHandler implements HttpHandler
+class MockFeedHandler extends Route
 {
     private final int feedSize
     private final int pageSize
 
-    public MockFeedHandler(int feedSize, int pageSize)
+    public MockFeedHandler(String path, int feedSize, int pageSize)
     {
+        super(path)
         this.pageSize = pageSize
         this.feedSize = feedSize
     }
 
-    @Override void handle(final HttpExchange httpExchange) throws IOException
+    @Override Object handle(final Request request, final Response response)
     {
-        httpExchange.with {
-            def params = parse(requestURI.query)
-            def entries = generateEntries(pageIndex(params))
-            sendResponseHeaders(200, 0)
-            responseBody.withWriter { Writer w -> w.write(entries) }
-            responseBody.close()
-        }
-    }
 
-    private int pageIndex(Map params)
-    {
-        String pageIndex = params.get('upToEntryId') ?: lastEntryIndex as String
-        Integer.valueOf(pageIndex)
+        def pageIndex = request.queryParams("upToEntryId");
+        if (isBlank(pageIndex))
+        {
+            pageIndex = lastEntryIndex
+        }
+        else
+        {
+            pageIndex = Integer.valueOf(pageIndex)
+        }
+        def entries = generateEntries(pageIndex)
+        response.status(200)
+        return entries
     }
 
     private int getLastEntryIndex()
     {
         feedSize
-    }
-
-    private static Map parse(final String query)
-    {
-        if (!isBlank(query))
-        {
-            query.split('&').collectEntries { pair -> def (k, v) = pair.split('='); return [k, v] }
-        }
-        else
-        {
-            emptyMap()
-        }
     }
 
     private generateEntries(int upToEntryId)
@@ -59,7 +48,7 @@ class MockFeedHandler implements HttpHandler
             [//
                     _id: "${eId}",
                     _published: "24/05/2013 00:0${eId}:00",
-                    _links: [self: [href: "/feed/${eId}"]],
+                    _links: [self: [href: "http://localhost:15000/feed/${eId}"]],
                     type: (eId == 1 ? "error" : "ok") //
             ]
         }

@@ -39,7 +39,7 @@ public class FeedConsumerConfiguration
 
     private Interval pollingInterval;
 
-    private Optional<PollingActivityHealthCheck> pollingActivityHealthCheck;
+    private Optional<PollingActivityHealthCheck> pollingActivityHealthCheck = Optional.absent();
 
     private ConsumeAction consumeAction;
 
@@ -93,7 +93,7 @@ public class FeedConsumerConfiguration
         return withFeedTracker(feedTracker);
     }
 
-    private FeedConsumerConfiguration withFeedTracker(final FeedTracker feedTracker)
+    public FeedConsumerConfiguration withFeedTracker(final FeedTracker feedTracker)
     {
         this.feedTracker = feedTracker;
         return this;
@@ -182,6 +182,7 @@ public class FeedConsumerConfiguration
         checkNotNull(pollingInterval, "Missing polling interval");
         checkNotNull(consumeAction, "Missing entry consumer action");
         checkNotNull(feedTracker, "Missing consumed store");
+        checkNotNull(resourceResolver, "Missing resrouce resolver");
     }
 
     private void configureHealthChecks()
