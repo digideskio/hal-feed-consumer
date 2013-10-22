@@ -140,7 +140,12 @@ class AvailableFeedEntriesFinder
             {
                 public boolean apply(final ReadableRepresentation input)
                 {
-                    return hasConsumablePublishedDate(input) && feedTracker.isTracked(input.getResourceLink());
+                    return hasConsumablePublishedDate(input) && isNotTracked(input);
+                }
+
+                private boolean isNotTracked(final ReadableRepresentation input)
+                {
+                    return !feedTracker.isTracked(input.getResourceLink());
                 }
 
                 private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)

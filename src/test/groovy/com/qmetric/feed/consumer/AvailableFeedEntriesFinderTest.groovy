@@ -24,11 +24,11 @@ class AvailableFeedEntriesFinderTest extends Specification
 
     def finder = new AvailableFeedEntriesFinder(feedEndpointFactory, tracker, Optional.absent())
 
-    def "should add all entries untracked entries"()
+    def "should add all untracked entries"()
     {
         given:
         firstPageEndpoint.get() >> reader('/feedWithAllUnconsumed.json')
-        tracker.isTracked(_ as Link) >>> [true, true]
+        tracker.isTracked(_ as Link) >>> [false, false]
 
         when:
         finder.findUnconsumed(firstPageEndpoint)
@@ -38,12 +38,12 @@ class AvailableFeedEntriesFinderTest extends Specification
         1 * tracker.track(new Link(Mock(RepresentationFactory), 'self', 'http://feed/idOfNewestUnconsumed'))
     }
 
-    def "should return all unconsumed entries provided entries occurred after given earliest date restriction"()
+    def "should add all untracked entries provided entries occurred after given earliest date restriction"()
     {
         given:
         def storeWithRestrictionOnEarliestDate = new AvailableFeedEntriesFinder(feedEndpointFactory, tracker, Optional.of(new EarliestEntryLimit(new DateTime(2013, 5, 23, 0, 0, 1))))
         firstPageEndpoint.get() >> reader('/feedWithAllUnconsumed.json')
-        tracker.isTracked(_ as Link) >>> [true, true]
+        tracker.isTracked(_ as Link) >>> [false, false]
 
         when:
         storeWithRestrictionOnEarliestDate.findUnconsumed(firstPageEndpoint)
@@ -52,11 +52,11 @@ class AvailableFeedEntriesFinderTest extends Specification
         1 * tracker.track(new Link(Mock(RepresentationFactory), 'self', 'http://feed/idOfNewestUnconsumed'))
     }
 
-    def "should return only unconsumed entries provided feed contains some unconsumed entries"()
+    def "should return only untracked entries provided feed contains both tracked and untracked"()
     {
         given:
         firstPageEndpoint.get() >> reader('/feedWithSomeUnconsumed.json')
-        tracker.isTracked(_ as Link) >>> [true, true, true, false]
+        tracker.isTracked(_ as Link) >>> [false, false, false, true]
 
         when:
         finder.findUnconsumed(firstPageEndpoint)
@@ -65,13 +65,13 @@ class AvailableFeedEntriesFinderTest extends Specification
         3 * tracker.track(_ as Link)
     }
 
-    def "should paginate to next feed if all entries in the feed are unconsumed"()
+    def "should walk to next feed page if all entries in the current page are untracked"()
     {
         given:
         firstPageEndpoint.get() >> reader('/feedWithAllUnconsumedAndNextLink.json')
         feedEndpointFactory.create(_ as String) >> secondPageEndpoint
         secondPageEndpoint.get() >> reader('/feedWithSomeUnconsumed.json')
-        tracker.isTracked(_ as Link) >>> [true, true, true, false]
+        tracker.isTracked(_ as Link) >>> [false, false, false, true]
 
         when:
         finder.findUnconsumed(firstPageEndpoint)
@@ -82,14 +82,14 @@ class AvailableFeedEntriesFinderTest extends Specification
         1 * tracker.track(new Link(Mock(RepresentationFactory), 'self', 'http://feed/idOfNewestUnconsumed'))
     }
 
-    def "should paginate to multiple pages"()
+    def "should walk all the pages until a tracked entry is found"()
     {
         given:
         firstPageEndpoint.get() >> reader('/feedWithAllUnconsumedAndNextLink.json')
         feedEndpointFactory.create(_ as String) >>> [secondPageEndpoint, thirdPageEndpoint]
         secondPageEndpoint.get() >> reader('/anotherFeedWithAllUnconsumedAndNextLink.json')
         thirdPageEndpoint.get() >> reader('/feedWithSomeUnconsumed.json')
-        tracker.isTracked(_ as Link) >>> [true, true, true, true, true, false]
+        tracker.isTracked(_ as Link) >>> [false, false, false, false, false, true]
 
         when:
         finder.findUnconsumed(firstPageEndpoint)
@@ -98,27 +98,11 @@ class AvailableFeedEntriesFinderTest extends Specification
         5 * tracker.track(_ as Link)
     }
 
-    @Ignore("Is it supposed to walk through all the pages skipping the consumed ones?") def "should paginate to multiple pages skipping consumed entries"()
-    {
-        given:
-        firstPageEndpoint.get() >> reader('/feedWithAllUnconsumedAndNextLink.json')
-        feedEndpointFactory.create(_ as String) >>> [secondPageEndpoint, thirdPageEndpoint]
-        secondPageEndpoint.get() >> reader('/anotherFeedWithAllUnconsumedAndNextLink.json')
-        thirdPageEndpoint.get() >> reader('/feedWithSomeUnconsumed.json')
-        tracker.isTracked(_ as Link) >>> [false, true, true, true, true, false]
-
-        when:
-        finder.findUnconsumed(firstPageEndpoint)
-
-        then:
-        4 * tracker.track(_ as Link)
-    }
-
-    def "should return none when feed has all consumed"()
+    def "should return none when tracker already contains all entries"()
     {
         given:
         firstPageEndpoint.get() >> reader('/feedWithAllConsumed.json')
-        tracker.isTracked(_ as Link) >>> [false]
+        tracker.isTracked(_ as Link) >> true
 
         when:
         finder.findUnconsumed(firstPageEndpoint)

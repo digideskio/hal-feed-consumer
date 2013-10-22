@@ -10,21 +10,20 @@ import spock.lang.Specification
 import static com.google.common.collect.Iterables.size
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
 import static net.java.quickcheck.generator.PrimitiveGeneratorsIterables.someObjects
+import static org.apache.commons.lang3.StringUtils.isBlank
 
-class SimpleDBConsumedStoreTest extends Specification
+class SimpleDBFeedTrackerTest extends Specification
 {
-
-    final feedHref = anyNonEmptyString()
 
     final domain = anyNonEmptyString()
 
-    final feedEntry = new Link(Mock(RepresentationFactory), 'self', feedHref)
+    final feedEntry = new Link(Mock(RepresentationFactory), anyNonEmptyString(), anyNonEmptyString())
 
     final simpleDBClient = Mock(AmazonSimpleDB)
 
     final consumedEntryStore = new SimpleDBFeedTracker(simpleDBClient, domain)
 
-    def "should store entry with consuming state only if not already consumed"()
+    def "should store entry with consuming state only if not already consuming"()
     {
         when:
         consumedEntryStore.markAsConsuming(feedEntry)
@@ -32,30 +31,31 @@ class SimpleDBConsumedStoreTest extends Specification
         then:
         1 * simpleDBClient.putAttributes(_) >> { PutAttributesRequest r ->
             assert r.domainName == domain
-            assert r.itemName == feedHref
+            assert r.itemName == itemName(feedEntry)
             assert r.attributes.size() == 1
-            assert r.attributes.get(0).name == "consuming"
-            assert r.expected.name == "consuming" && !r.expected.exists
+            def attribute = r.attributes.get(0)
+            assert attribute.name == "consuming"
+            assert !isBlank(attribute.value)
+            assert r.expected.name == "consuming"
+            assert r.expected.exists == false
         }
     }
 
     def "should throw AlreadyConsumingException when attempting to set consuming state for entry already being consumed by another consumer"()
     {
-        given:
-        simpleDBClient.putAttributes(_) >> {
-            final error = new AmazonServiceException("Conditional check failed. Attribute (consuming) value exists")
-            error.setErrorCode("ConditionalCheckFailed")
-            throw error
-        }
-
         when:
         consumedEntryStore.markAsConsuming(feedEntry)
 
         then:
+        1 * simpleDBClient.putAttributes(_) >> {
+            final error = new AmazonServiceException("Conditional check failed. Attribute (consuming) value exists")
+            error.setErrorCode("ConditionalCheckFailed")
+            throw error
+        }
         thrown(AlreadyConsumingException)
     }
 
-    def "should revert entry as being in consuming state"()
+    def 'revert consuming should remove "consuming" attribute'()
     {
         when:
         consumedEntryStore.revertConsuming(feedEntry)
@@ -63,13 +63,13 @@ class SimpleDBConsumedStoreTest extends Specification
         then:
         1 * simpleDBClient.deleteAttributes(_) >> { DeleteAttributesRequest r ->
             assert r.domainName == domain
-            assert r.itemName == feedHref
+            assert r.itemName == feedEntry.href
             assert r.attributes.size() == 1
             assert r.attributes.get(0).getName() == "consuming"
         }
     }
 
-    def "should store entry with consumed state"()
+    def 'should mark consumed entry with "consumed" attribute'()
     {
         when:
         consumedEntryStore.markAsConsumed(feedEntry)
@@ -77,30 +77,48 @@ class SimpleDBConsumedStoreTest extends Specification
         then:
         simpleDBClient.putAttributes(_) >> { PutAttributesRequest r ->
             assert r.domainName == domain
-            assert r.itemName == feedHref
+            assert r.itemName == feedEntry.href
             assert r.attributes.size() == 1
-            assert r.attributes.get(0).getName() == "consumed"
+            def attribute = r.attributes.get(0)
+            assert attribute.name == "consumed"
+            assert !isBlank(attribute.value)
         }
     }
 
-    def "should return whether entry has already been consumed"()
+    def 'should add new entry with "seen_at" attribute'()
     {
         when:
-        final notConsumedResult = consumedEntryStore.isTracked(feedEntry)
+        consumedEntryStore.track(feedEntry)
 
         then:
-        1 * simpleDBClient.select(_) >> new SelectResult().withItems(new Item())
-        !notConsumedResult
+        1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest r ->
+            assert r.domainName == domain
+            assert r.itemName == feedEntry.href
+            assert r.attributes.size() == 1
+            def attribute = r.attributes.get(0)
+            assert attribute.name == "seen_at"
+            assert !isBlank(attribute.value)
+        }
+
+        where:
+        returnedItems | expected
+        []            | false
+        [new Item()]  | true
     }
 
-    def "should return whether entry has not yet been consumed"()
+    def 'should return whether entry is tracked or not'()
     {
         when:
-        final notConsumedResult = consumedEntryStore.isTracked(feedEntry)
+        final isTracked = consumedEntryStore.isTracked(feedEntry)
 
         then:
-        1 * simpleDBClient.select(_) >> new SelectResult()
-        notConsumedResult
+        1 * simpleDBClient.select(_ as SelectRequest) >> new SelectResult().withItems(returnedItems)
+        isTracked == expected
+
+        where:
+        returnedItems | expected
+        []            | false
+        [new Item()]  | true
     }
 
     def "should return list of unconsumed entries"()
@@ -138,5 +156,10 @@ class SimpleDBConsumedStoreTest extends Specification
     private static List<Item> someItems()
     {
         someObjects().collect { new Item() }
+    }
+
+    private static String itemName(final Link entry)
+    {
+        entry.href
     }
 }

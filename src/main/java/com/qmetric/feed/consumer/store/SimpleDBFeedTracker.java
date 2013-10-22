@@ -48,7 +48,7 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     public static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
 
-    public static final Function<Item,Link> ITEM_TO_LINK = new Function<Item, Link>()
+    public static final Function<Item, Link> ITEM_TO_LINK = new Function<Item, Link>()
     {
         @Nullable @Override public Link apply(final Item input)
         {
@@ -84,7 +84,7 @@ public class SimpleDBFeedTracker implements FeedTracker
     {
         try
         {
-            run(new PutAttributesRequest(domain, getId(feedEntry), asList(withCurrentDate(CONSUMING_DATE_ATTR)), IF_NOT_ALREADY_CONSUMING));
+            run(new PutAttributesRequest(domain, itemName(feedEntry), asList(withCurrentDate(CONSUMING_DATE_ATTR)), IF_NOT_ALREADY_CONSUMING));
         }
         catch (final AmazonServiceException e)
         {
@@ -101,21 +101,23 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     @Override public void revertConsuming(final Link feedEntry)
     {
-        run(new DeleteAttributesRequest(domain, getId(feedEntry), asList(attribute(CONSUMING_DATE_ATTR))));
+        run(new DeleteAttributesRequest(domain, itemName(feedEntry), asList(attribute(CONSUMING_DATE_ATTR))));
     }
 
     @Override public void markAsConsumed(final Link feedEntry)
     {
-        run(new PutAttributesRequest(domain, getId(feedEntry), asList(withCurrentDate(CONSUMED_DATE_ATTR))));
+        run(putRequest(feedEntry, withCurrentDate(CONSUMED_DATE_ATTR)));
     }
 
     @Override public boolean isTracked(final Link feedEntry)
     {
-        return !getConsumedEntry(feedEntry).isPresent();
+        return getEntry(feedEntry).isPresent();
     }
 
     @Override public void track(final Link link)
     {
+        final ReplaceableAttribute seen_at = new ReplaceableAttribute().withName("seen_at").withValue(currentDate()).withReplace(false);
+        run(putRequest(link, seen_at));
     }
 
     @Override public Iterable<Link> getItemsToBeConsumed()
@@ -123,14 +125,15 @@ public class SimpleDBFeedTracker implements FeedTracker
         return FluentIterable.from(run(selectToBeConsumed())).transform(ITEM_TO_LINK);
     }
 
-    private Optional<Item> getConsumedEntry(final Link feedEntry)
+    private Optional<Item> getEntry(final Link feedEntry)
     {
-        return from(run(selectConsumed(feedEntry))).first();
+        final List<Item> result = run(selectConsumed(feedEntry));
+        return from(result).first();
     }
 
     private SelectRequest selectConsumed(final Link feedEntry)
     {
-        String query = format(SELECT_CONSUMED_ITEM, domain, getId(feedEntry));
+        String query = format(SELECT_CONSUMED_ITEM, domain, itemName(feedEntry));
         return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
     }
 
@@ -143,6 +146,11 @@ public class SimpleDBFeedTracker implements FeedTracker
     private DomainMetadataResult getDomainMetadata()
     {
         return run(new DomainMetadataRequest(domain));
+    }
+
+    private PutAttributesRequest putRequest(final Link link, final ReplaceableAttribute... seen_at)
+    {
+        return new PutAttributesRequest(domain, itemName(link), asList(seen_at));
     }
 
     private List<Item> run(final SelectRequest request)
@@ -170,7 +178,7 @@ public class SimpleDBFeedTracker implements FeedTracker
         return new Attribute().withName(name);
     }
 
-    private static <T> ImmutableList<T> asList(T... ts)
+    private static <T> List<T> asList(T... ts)
     {
         return ImmutableList.<T>builder().add(ts).build();
     }
@@ -185,7 +193,7 @@ public class SimpleDBFeedTracker implements FeedTracker
         return DATE_FORMATTER.print(now());
     }
 
-    private static String getId(final Link feedEntry)
+    private static String itemName(final Link feedEntry)
     {
         return feedEntry.getHref();
     }
