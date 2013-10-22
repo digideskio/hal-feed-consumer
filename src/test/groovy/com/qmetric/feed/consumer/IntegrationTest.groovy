@@ -1,9 +1,11 @@
 package com.qmetric.feed.consumer
+
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.amazonaws.services.simpledb.model.DeleteDomainRequest
 import com.amazonaws.services.simpledb.model.DomainMetadataRequest
+import com.amazonaws.services.simpledb.model.Item
 import com.amazonaws.services.simpledb.model.SelectRequest
 import com.qmetric.feed.consumer.multipleClientsTest.MockEntryHandler
 import com.qmetric.feed.consumer.multipleClientsTest.MockFeedHandler
@@ -13,19 +15,16 @@ import com.theoryinpractise.halbuilder.api.ReadableRepresentation
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
-import org.mockito.Mockito
 import spark.Spark
 
 import static com.amazonaws.regions.Region.getRegion
 import static java.lang.System.currentTimeMillis
-import static java.util.concurrent.TimeUnit.MINUTES
 import static java.util.concurrent.TimeUnit.SECONDS
 import static junit.framework.Assert.fail
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.mockito.Matchers.any
-import static org.mockito.Mockito.times
-import static org.mockito.Mockito.verify
+import static org.mockito.Mockito.*
 
 class IntegrationTest
 {
@@ -77,25 +76,36 @@ class IntegrationTest
         simpleDBClient.deleteDomain(new DeleteDomainRequest(domainName))
     }
 
+    def action = mock(ConsumeAction)
+
+    def consumer = new FeedConsumerConfiguration()
+            .consumeEachEntryWith(action)
+            .withFeedTracker(tracker)
+            .pollForNewEntriesEvery(30, SECONDS)
+            .fromUrl("http://localhost:${FEED_SERVER_PORT}/feed").build()
+
     @Test(timeout = 60000L) public void 'action is invoked as many times as the feed size'()
     {
-
-        def action = Mockito.mock(ConsumeAction)
-
-        def consumer = new FeedConsumerConfiguration()
-                .consumeEachEntryWith(action)
-                .withFeedTracker(tracker)
-                .pollForNewEntriesEvery(30, SECONDS)
-                .fromUrl("http://localhost:${FEED_SERVER_PORT}/feed").build()
         consumer.start()
-        while (consumer.getInvocationsCount() < 1)
-        {
-            SECONDS.sleep(5)
-        }
+        waitConsumerToRunOnce(consumer)
         consumer.stop()
         verify(action, times(FEED_SIZE)).consume(any(ReadableRepresentation))
         def result = simpleDBClient.select(new SelectRequest("select * from `${domainName}`", true))
         assertThat(result.items.size(), equalTo(FEED_SIZE))
+        result.items.each { Item it ->
+            def attributes = it.attributes.collectEntries { [it.name, it.value] }
+            assertThat(attributes.containsKey('consumed'), equalTo(true))
+            assertThat(attributes.containsKey('consuming'), equalTo(true))
+            assertThat(attributes.containsKey('seen_at'), equalTo(true))
+        }
+    }
+
+    private static void waitConsumerToRunOnce(FeedConsumerScheduler consumer)
+    {
+        while (consumer.getInvocationsCount() < 1)
+        {
+            SECONDS.sleep(5)
+        }
     }
 
     private static AmazonSimpleDBClient simpleDBClient()

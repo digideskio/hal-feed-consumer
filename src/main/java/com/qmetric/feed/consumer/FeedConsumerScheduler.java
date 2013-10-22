@@ -58,7 +58,7 @@ public class FeedConsumerScheduler
         scheduledFuture.cancel(false);
     }
 
-    public int getInvocationsCount()
+    protected int getInvocationsCount()
     {
         return invocationCounter.get();
     }
