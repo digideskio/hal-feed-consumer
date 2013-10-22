@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
@@ -18,6 +20,10 @@ public class FeedConsumerScheduler
     private final ScheduledExecutorService scheduledExecutorService;
 
     private final AvailableFeedEntriesFinder feedEntriesFinder;
+
+    private ScheduledFuture<?> scheduledFuture;
+
+    private final AtomicInteger invocationCounter = new AtomicInteger(0);
 
     public FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval)
     {
@@ -35,15 +41,26 @@ public class FeedConsumerScheduler
 
     public void start()
     {
-        scheduledExecutorService.scheduleAtFixedRate(new Runnable()
+        scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(new Runnable()
         {
             @Override
             public void run()
             {
                 updateTracker();
                 consume();
+                invocationCounter.getAndIncrement();
             }
         }, 0, interval.time, interval.unit);
+    }
+
+    public void stop()
+    {
+        scheduledFuture.cancel(false);
+    }
+
+    public int getInvocationsCount()
+    {
+        return invocationCounter.get();
     }
 
     private void updateTracker()

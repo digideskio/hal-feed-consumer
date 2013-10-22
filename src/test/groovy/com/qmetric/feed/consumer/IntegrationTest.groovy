@@ -1,10 +1,10 @@
 package com.qmetric.feed.consumer
-
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.amazonaws.services.simpledb.model.DeleteDomainRequest
 import com.amazonaws.services.simpledb.model.DomainMetadataRequest
+import com.amazonaws.services.simpledb.model.SelectRequest
 import com.qmetric.feed.consumer.multipleClientsTest.MockEntryHandler
 import com.qmetric.feed.consumer.multipleClientsTest.MockFeedHandler
 import com.qmetric.feed.consumer.store.FeedTracker
@@ -18,8 +18,11 @@ import spark.Spark
 
 import static com.amazonaws.regions.Region.getRegion
 import static java.lang.System.currentTimeMillis
+import static java.util.concurrent.TimeUnit.MINUTES
 import static java.util.concurrent.TimeUnit.SECONDS
 import static junit.framework.Assert.fail
+import static org.hamcrest.CoreMatchers.equalTo
+import static org.hamcrest.MatcherAssert.assertThat
 import static org.mockito.Matchers.any
 import static org.mockito.Mockito.times
 import static org.mockito.Mockito.verify
@@ -74,7 +77,7 @@ class IntegrationTest
         simpleDBClient.deleteDomain(new DeleteDomainRequest(domainName))
     }
 
-    @Test public void 'action is invoked as many times as the feed size'()
+    @Test(timeout = 60000L) public void 'action is invoked as many times as the feed size'()
     {
 
         def action = Mockito.mock(ConsumeAction)
@@ -82,13 +85,17 @@ class IntegrationTest
         def consumer = new FeedConsumerConfiguration()
                 .consumeEachEntryWith(action)
                 .withFeedTracker(tracker)
-                .pollForNewEntriesEvery(15, SECONDS)
-                .fromUrl("http://localhost:${FEED_SERVER_PORT}/feed")
-
+                .pollForNewEntriesEvery(30, SECONDS)
+                .fromUrl("http://localhost:${FEED_SERVER_PORT}/feed").build()
         consumer.start()
-
-        SECONDS.sleep(30)
+        while (consumer.getInvocationsCount() < 1)
+        {
+            SECONDS.sleep(5)
+        }
+        consumer.stop()
         verify(action, times(FEED_SIZE)).consume(any(ReadableRepresentation))
+        def result = simpleDBClient.select(new SelectRequest("select * from `${domainName}`", true))
+        assertThat(result.items.size(), equalTo(FEED_SIZE))
     }
 
     private static AmazonSimpleDBClient simpleDBClient()

@@ -49,6 +49,8 @@ public class FeedConsumerConfiguration
 
     private ResourceResolver resourceResolver = new DefaultResourceResolver(feedEndpointFactory);
 
+    private FeedConsumerScheduler feedConsumerScheduler;
+
     public FeedConsumerConfiguration fromUrl(final String feedUrl)
     {
         this.feedUrl = feedUrl;
@@ -144,20 +146,18 @@ public class FeedConsumerConfiguration
         return metricRegistry;
     }
 
-    public FeedConsumerConfiguration start()
+    public FeedConsumerScheduler build()
     {
         validateConfiguration();
 
         configureHealthChecks();
 
-        startConsumerScheduler();
-
-        return this;
+        return buildConsumerScheduler();
     }
 
-    private void startConsumerScheduler()
+    private FeedConsumerScheduler buildConsumerScheduler()
     {
-        new FeedConsumerScheduler(feedConsumer(), feedEntriesFinder(), pollingInterval).start();
+        return new FeedConsumerScheduler(feedConsumer(), feedEntriesFinder(), pollingInterval);
     }
 
     private AvailableFeedEntriesFinder feedEntriesFinder()
