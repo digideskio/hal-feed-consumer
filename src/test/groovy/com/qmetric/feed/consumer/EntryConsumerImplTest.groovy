@@ -10,7 +10,7 @@ import spock.lang.Specification
 
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
-class EntryConsumerImpl_Test extends Specification
+class EntryConsumerImplTest extends Specification
 {
 
     final consumeAction = Mock(ConsumeAction)

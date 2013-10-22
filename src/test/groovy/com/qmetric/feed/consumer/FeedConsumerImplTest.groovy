@@ -8,7 +8,7 @@ import spock.lang.Specification
 
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyInteger
 
-class FeedConsumerImpl_Test extends Specification
+class FeedConsumerImplTest extends Specification
 {
 
     final entryConsumer = Mock(EntryConsumer)
