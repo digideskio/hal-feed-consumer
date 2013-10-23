@@ -125,6 +125,20 @@ public class SimpleDBFeedTracker implements FeedTracker
         return FluentIterable.from(run(selectToBeConsumed())).transform(ITEM_TO_LINK);
     }
 
+    public Integer countConsuming()
+    {
+        final Item item = run(count(CONSUMING_DATE_ATTR)).get(0);
+        final String count = item.getAttributes().get(0).getValue();
+        return Integer.valueOf(count);
+    }
+
+    public int countConsumed()
+    {
+        final Item item = run(count(CONSUMED_DATE_ATTR)).get(0);
+        final String count = item.getAttributes().get(0).getValue();
+        return Integer.valueOf(count);
+    }
+
     private Optional<Item> getEntry(final Link feedEntry)
     {
         final List<Item> result = run(selectConsumed(feedEntry));
@@ -141,6 +155,11 @@ public class SimpleDBFeedTracker implements FeedTracker
     {
         String query = format(SELECT_ITEMS_TO_BE_CONSUMED, domain);
         return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
+    }
+
+    private SelectRequest count(final String notNullAttribute)
+    {
+        return new SelectRequest(format("select count(*) from `%s` where %s is not null", domain, notNullAttribute));
     }
 
     private DomainMetadataResult getDomainMetadata()

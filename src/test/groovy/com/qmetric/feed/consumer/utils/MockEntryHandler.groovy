@@ -1,4 +1,4 @@
-package com.qmetric.feed.consumer.multipleClientsTest
+package com.qmetric.feed.consumer.utils
 
 import spark.Request
 import spark.Response

@@ -1,4 +1,4 @@
-package com.qmetric.feed.consumer.multipleClientsTest
+package com.qmetric.feed.consumer.utils
 
 import spark.Request
 import spark.Response
@@ -7,7 +7,7 @@ import spark.Route
 import static groovy.json.JsonOutput.toJson
 import static org.apache.commons.lang3.StringUtils.isBlank
 
-class MockFeedHandler extends Route
+public class MockFeedHandler extends Route
 {
     private final int feedSize
     private final int pageSize
