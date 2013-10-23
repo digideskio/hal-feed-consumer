@@ -9,7 +9,6 @@ import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import com.theoryinpractise.halbuilder.impl.representations.MutableRepresentation
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import java.util.concurrent.Executors
@@ -24,7 +23,6 @@ import static org.hamcrest.core.IsEqual.equalTo
 import static org.junit.Assert.assertThat
 import static org.mockito.Mockito.mock
 
-@Ignore
 class MultipleClientTest
 {
     private static final FEED_SIZE = 9
@@ -107,24 +105,6 @@ class MultipleClientTest
                 println "Running ${consumer} in thread ${currentThread().name}"
                 consumer.consume()
             }
-        }
-    }
-
-    private static final ConsumeAction THROW_EXCEPTION = new ConsumeAction() {
-        @Override void consume(final ReadableRepresentation input)
-        {
-            if (input.resourceLink.href.contains(MARKER))
-            {
-                throw new RuntimeException()
-            }
-        }
-    }
-
-    public static final ConsumeAction JUST_LOG = new ConsumeAction() {
-
-        @Override void consume(final ReadableRepresentation input)
-        {
-            println "Consumed ${input.getResourceLink()}"
         }
     }
 

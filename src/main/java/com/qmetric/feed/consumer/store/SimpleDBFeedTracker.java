@@ -159,7 +159,7 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private SelectRequest count(final String notNullAttribute)
     {
-        return new SelectRequest(format("select count(*) from `%s` where %s is not null", domain, notNullAttribute));
+        return new SelectRequest(format("select count(*) from `%s` where %s is not null", domain, notNullAttribute), true);
     }
 
     private DomainMetadataResult getDomainMetadata()
