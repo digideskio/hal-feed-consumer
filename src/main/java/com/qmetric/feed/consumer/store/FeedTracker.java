@@ -10,6 +10,8 @@ public interface FeedTracker
 
     void revertConsuming(final Link link);
 
+    void fail(final Link link);
+
     void markAsConsumed(Link link);
 
     boolean isTracked(Link link);

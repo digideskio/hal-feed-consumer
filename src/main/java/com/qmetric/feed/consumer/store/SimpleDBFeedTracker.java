@@ -7,6 +7,8 @@ import com.amazonaws.services.simpledb.model.CreateDomainRequest;
 import com.amazonaws.services.simpledb.model.DeleteAttributesRequest;
 import com.amazonaws.services.simpledb.model.DomainMetadataRequest;
 import com.amazonaws.services.simpledb.model.DomainMetadataResult;
+import com.amazonaws.services.simpledb.model.GetAttributesRequest;
+import com.amazonaws.services.simpledb.model.GetAttributesResult;
 import com.amazonaws.services.simpledb.model.Item;
 import com.amazonaws.services.simpledb.model.PutAttributesRequest;
 import com.amazonaws.services.simpledb.model.ReplaceableAttribute;
@@ -14,6 +16,7 @@ import com.amazonaws.services.simpledb.model.SelectRequest;
 import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
@@ -40,11 +43,15 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private static final String CONSUMING_DATE_ATTR = "consuming";
 
+    private static final String FAILURES_COUNT = "failures_count";
+
+    private static final String MAX_FAILURES = "099";
+
     private static final String SELECT_CONSUMED_ITEM = "select itemName() from `%s` where itemName() = '%s' and `" + CONSUMED_DATE_ATTR + "` is not null limit 1";
 
-    private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select itemName() from `%s` where `" + CONSUMED_DATE_ATTR +
-                                                              "` is null and `" + CONSUMING_DATE_ATTR +
-                                                              "` is null";
+    private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select itemName() from `%s` where `" + CONSUMED_DATE_ATTR + "` is null " +
+                                                              "and `" + CONSUMING_DATE_ATTR + "` is null " +
+                                                              "and (`" + FAILURES_COUNT + "` is null or `" + FAILURES_COUNT + "` < '" + MAX_FAILURES + "')";
 
     public static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
 
@@ -55,6 +62,18 @@ public class SimpleDBFeedTracker implements FeedTracker
             return new Link(new DefaultRepresentationFactory(), "self", input.getName());
         }
     };
+
+    private static final Attribute ZERO_FAILURES = new Attribute(FAILURES_COUNT, "0");
+
+    private static final Predicate<Attribute> IS_FAILURE_COUNT = new Predicate<Attribute>()
+    {
+        @Override public boolean apply(final Attribute input)
+        {
+            return FAILURES_COUNT.equals(input.getName());
+        }
+    };
+
+    private static final String ZEROPADDED_INTEGER = "%03d";
 
     private final AmazonSimpleDB simpleDBClient;
 
@@ -102,6 +121,17 @@ public class SimpleDBFeedTracker implements FeedTracker
     @Override public void revertConsuming(final Link feedEntry)
     {
         run(new DeleteAttributesRequest(domain, itemName(feedEntry), asList(attribute(CONSUMING_DATE_ATTR))));
+    }
+
+    @Override public void fail(final Link link)
+    {
+        final GetAttributesResult response = run(new GetAttributesRequest(domain, itemName(link)).withAttributeNames(FAILURES_COUNT));
+        final Optional<Attribute> failuresCount = from(response.getAttributes()).firstMatch(IS_FAILURE_COUNT);
+        final int currentCount = Integer.valueOf(failuresCount.or(ZERO_FAILURES).getValue());
+        final int nextCount = currentCount + 1;
+        PutAttributesRequest request = putRequest(link, new ReplaceableAttribute(FAILURES_COUNT, format(ZEROPADDED_INTEGER, nextCount), true));
+        run(request);
+        revertConsuming(link);
     }
 
     @Override public void markAsConsumed(final Link feedEntry)
@@ -167,9 +197,9 @@ public class SimpleDBFeedTracker implements FeedTracker
         return run(new DomainMetadataRequest(domain));
     }
 
-    private PutAttributesRequest putRequest(final Link link, final ReplaceableAttribute... seen_at)
+    private PutAttributesRequest putRequest(final Link link, final ReplaceableAttribute... attributes)
     {
-        return new PutAttributesRequest(domain, itemName(link), asList(seen_at));
+        return new PutAttributesRequest(domain, itemName(link), asList(attributes));
     }
 
     private List<Item> run(final SelectRequest request)
@@ -185,6 +215,11 @@ public class SimpleDBFeedTracker implements FeedTracker
     private void run(final DeleteAttributesRequest request)
     {
         simpleDBClient.deleteAttributes(request);
+    }
+
+    private GetAttributesResult run(final GetAttributesRequest request)
+    {
+        return simpleDBClient.getAttributes(request);
     }
 
     private DomainMetadataResult run(final DomainMetadataRequest request)

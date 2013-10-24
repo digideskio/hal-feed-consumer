@@ -2,7 +2,10 @@ package com.qmetric.feed.consumer
 
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.amazonaws.services.simpledb.model.Item
+import com.amazonaws.services.simpledb.model.PutAttributesRequest
+import com.amazonaws.services.simpledb.model.ReplaceableAttribute
 import com.amazonaws.services.simpledb.model.SelectRequest
+import com.google.common.collect.FluentIterable
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.MockEntryHandler
@@ -64,7 +67,6 @@ class IntegrationTest
 
     @Before public void createDomain()
     {
-
         new SimpleDBUtils(simpleDBClient).createDomainAndWait(DOMAIN_NAME)
     }
 
@@ -72,7 +74,6 @@ class IntegrationTest
     {
         new SimpleDBUtils(simpleDBClient).deleteDomain(DOMAIN_NAME)
     }
-
 
     @Test(timeout = 60000L) public void 'all entries provided by the mock feed are stored '()
     {

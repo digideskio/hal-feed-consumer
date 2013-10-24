@@ -64,8 +64,7 @@ public class EntryConsumerImpl implements EntryConsumer
         }
         catch (final Exception e)
         {
-            feedTracker.revertConsuming(link);
-
+            feedTracker.fail(link);
             throw e;
         }
     }

@@ -11,9 +11,12 @@ import static com.google.common.collect.Iterables.size
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
 import static net.java.quickcheck.generator.PrimitiveGeneratorsIterables.someObjects
 import static org.apache.commons.lang3.StringUtils.isBlank
+import static org.junit.Assert.fail
 
 class SimpleDBFeedTrackerTest extends Specification
 {
+    private static FAILURES_COUNT = 'failures_count'
+    private static CONSUMING = "consuming"
 
     final domain = anyNonEmptyString()
 
@@ -34,9 +37,9 @@ class SimpleDBFeedTrackerTest extends Specification
             assert r.itemName == itemName(feedEntry)
             assert r.attributes.size() == 1
             def attribute = r.attributes.get(0)
-            assert attribute.name == "consuming"
+            assert attribute.name == CONSUMING
             assert !isBlank(attribute.value)
-            assert r.expected.name == "consuming"
+            assert r.expected.name == CONSUMING
             assert r.expected.exists == false
         }
     }
@@ -65,8 +68,46 @@ class SimpleDBFeedTrackerTest extends Specification
             assert r.domainName == domain
             assert r.itemName == feedEntry.href
             assert r.attributes.size() == 1
-            assert r.attributes.get(0).getName() == "consuming"
+            assert r.attributes.get(0).getName() == CONSUMING
         }
+    }
+
+    def 'fail should increment fail count and remove "consuming" attribute'()
+    {
+        when:
+        consumedEntryStore.fail(feedEntry)
+
+        then: 'get current failures count'
+        1 * simpleDBClient.getAttributes(_ as GetAttributesRequest) >> { GetAttributesRequest it ->
+            assert it.domainName == domain
+            assert it.itemName == feedEntry.href
+            assert it.attributeNames == [FAILURES_COUNT]
+            return new GetAttributesResult().withAttributes(initialAttributes)
+        }
+
+        and: 'increment failures count'
+        1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest it ->
+            assert it.domainName == domain
+            assert it.itemName == feedEntry.href
+            assert it.attributes.size() == 1
+            assert it.attributes.contains(expectedAttribute)
+        }
+        and: 'revert consuming'
+        1 * simpleDBClient.deleteAttributes(_ as DeleteAttributesRequest) >> { DeleteAttributesRequest r ->
+            assert r.domainName == domain
+            assert r.itemName == feedEntry.href
+            assert r.attributes.size() == 1
+            assert r.attributes.get(0).getName() == CONSUMING
+        }
+
+        where:
+        initial_count | incremented_count
+        null          | '001'
+        '001'         | '002'
+        '002'         | '003'
+
+        expectedAttribute = new ReplaceableAttribute(FAILURES_COUNT, incremented_count, true)
+        initialAttributes = initial_count == null ? null : new Attribute(FAILURES_COUNT, initial_count)
     }
 
     def 'should mark consumed entry with "consumed" attribute'()
@@ -130,7 +171,13 @@ class SimpleDBFeedTrackerTest extends Specification
         def notConsumedResult = consumedEntryStore.getItemsToBeConsumed()
 
         then:
-        1 * simpleDBClient.select(_) >> new SelectResult().withItems(items)
+        1 * simpleDBClient.select(_) >> { SelectRequest r ->
+            def whereCondition = r.getSelectExpression().split("(?i)where")[1]
+            assert whereCondition.contains('failures_count')
+            assert whereCondition.contains('consuming')
+            assert whereCondition.contains('consumed')
+            return new SelectResult().withItems(items)
+        }
         size(notConsumedResult) == size(items)
     }
 

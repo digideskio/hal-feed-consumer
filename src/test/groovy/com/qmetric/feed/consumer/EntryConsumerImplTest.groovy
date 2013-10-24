@@ -1,6 +1,5 @@
 package com.qmetric.feed.consumer
 
-import com.google.common.io.Resources
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.theoryinpractise.halbuilder.api.Link
@@ -44,21 +43,20 @@ class EntryConsumerImplTest extends Specification
 
         then:
         1 * feedTracker.markAsConsuming(link) >> { throw new AlreadyConsumingException() }
-        0 * consumeAction.consume(_)
-        0 * feedTracker.markAsConsumed(_)
-        0 * feedTracker.revertConsuming(_)
+        0 * consumeAction._
+        0 * feedTracker._
         thrown(AlreadyConsumingException)
     }
 
-    def "should revert consuming state if error occurs whilst consuming entry"()
+    def "should mark entry as failed if error occurs whilst consuming entry (mark fail should also revert consuming)"()
     {
         when:
         consumer.consume(link)
 
         then:
         1 * consumeAction.consume(_) >> { throw new Exception() }
+        1 * feedTracker.fail(_)
         0 * feedTracker.markAsConsumed(_)
-        1 * feedTracker.revertConsuming(_)
         thrown(Exception)
     }
 
@@ -81,10 +79,5 @@ class EntryConsumerImplTest extends Specification
 
         then:
         1 * listener.consumed(link)
-    }
-
-    private static InputStreamReader reader(String s)
-    {
-        new InputStreamReader(Resources.getResourceAsStream(s))
     }
 }
