@@ -17,7 +17,6 @@ import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
 import com.theoryinpractise.halbuilder.api.Link;
@@ -99,11 +98,11 @@ public class SimpleDBFeedTracker implements FeedTracker
         }
     }
 
-    @Override public void markAsConsuming(final Link feedEntry) throws AlreadyConsumingException
+    @Override public void markAsConsuming(final Link link) throws AlreadyConsumingException
     {
         try
         {
-            run(new PutAttributesRequest(domain, itemName(feedEntry), asList(withCurrentDate(CONSUMING_DATE_ATTR)), IF_NOT_ALREADY_CONSUMING));
+            run(putRequest(link, IF_NOT_ALREADY_CONSUMING, withCurrentDate(CONSUMING_DATE_ATTR)));
         }
         catch (final AmazonServiceException e)
         {
@@ -120,12 +119,12 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     @Override public void revertConsuming(final Link feedEntry)
     {
-        run(new DeleteAttributesRequest(domain, itemName(feedEntry), asList(attribute(CONSUMING_DATE_ATTR))));
+        run(deleteRequest(feedEntry, attribute(CONSUMING_DATE_ATTR)));
     }
 
     @Override public void fail(final Link link)
     {
-        final GetAttributesResult response = run(new GetAttributesRequest(domain, itemName(link)).withAttributeNames(FAILURES_COUNT));
+        final GetAttributesResult response = run(getAttributeRequest(link, FAILURES_COUNT));
         final Optional<Attribute> failuresCount = from(response.getAttributes()).firstMatch(IS_FAILURE_COUNT);
         final int currentCount = Integer.valueOf(failuresCount.or(ZERO_FAILURES).getValue());
         final int nextCount = currentCount + 1;
@@ -152,10 +151,10 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     @Override public Iterable<Link> getItemsToBeConsumed()
     {
-        return FluentIterable.from(run(selectToBeConsumed())).transform(ITEM_TO_LINK);
+        return from(run(selectToBeConsumed())).transform(ITEM_TO_LINK);
     }
 
-    public Integer countConsuming()
+    public int countConsuming()
     {
         final Item item = run(count(CONSUMING_DATE_ATTR)).get(0);
         final String count = item.getAttributes().get(0).getValue();
@@ -197,9 +196,24 @@ public class SimpleDBFeedTracker implements FeedTracker
         return run(new DomainMetadataRequest(domain));
     }
 
+    private GetAttributesRequest getAttributeRequest(final Link link, final String... attributes)
+    {
+        return new GetAttributesRequest(domain, itemName(link)).withAttributeNames(attributes);
+    }
+
     private PutAttributesRequest putRequest(final Link link, final ReplaceableAttribute... attributes)
     {
         return new PutAttributesRequest(domain, itemName(link), asList(attributes));
+    }
+
+    private PutAttributesRequest putRequest(final Link link, final UpdateCondition updateCondition, final ReplaceableAttribute... attributes)
+    {
+        return new PutAttributesRequest(domain, itemName(link), asList(attributes), updateCondition);
+    }
+
+    private DeleteAttributesRequest deleteRequest(final Link link, final Attribute... attributes)
+    {
+        return new DeleteAttributesRequest(domain, itemName(link), asList(attributes));
     }
 
     private List<Item> run(final SelectRequest request)
