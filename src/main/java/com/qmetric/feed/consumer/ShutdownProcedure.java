@@ -60,7 +60,7 @@ class ShutdownProcedure implements Runnable
         try
         {
             stopAcceptingNewJobs();
-            waitJobsToTerminate();
+            waitRunningJobsToTerminate();
         }
         catch (InterruptedException e)
         {
@@ -81,7 +81,7 @@ class ShutdownProcedure implements Runnable
         }
     }
 
-    private void waitJobsToTerminate() throws InterruptedException
+    private void waitRunningJobsToTerminate() throws InterruptedException
     {
         log.info("Terminating all executor-service jobs");
         if (executorService.awaitTermination(30, SECONDS))
