@@ -46,11 +46,12 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private static final String MAX_FAILURES = "099";
 
-    private static final String SELECT_CONSUMED_ITEM = "select itemName() from `%s` where itemName() = '%s' and `" + CONSUMED_DATE_ATTR + "` is not null limit 1";
+    private static final String SELECT_ITEM_BY_NAME = "select * from `%s` where itemName() = '%s' limit 1";
 
     private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select itemName() from `%s` where `" + CONSUMED_DATE_ATTR + "` is null " +
                                                               "and `" + CONSUMING_DATE_ATTR + "` is null " +
-                                                              "and (`" + FAILURES_COUNT + "` is null or `" + FAILURES_COUNT + "` < '" + MAX_FAILURES + "')";
+                                                              "and (`" + FAILURES_COUNT + "` is null or `" + FAILURES_COUNT + "` < '" + MAX_FAILURES + "') " +
+                                                              "limit 10";
 
     public static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
 
@@ -170,13 +171,13 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private Optional<Item> getEntry(final Link feedEntry)
     {
-        final List<Item> result = run(selectConsumed(feedEntry));
+        final List<Item> result = run(selectItem(feedEntry));
         return from(result).first();
     }
 
-    private SelectRequest selectConsumed(final Link feedEntry)
+    private SelectRequest selectItem(final Link feedEntry)
     {
-        String query = format(SELECT_CONSUMED_ITEM, domain, itemName(feedEntry));
+        String query = format(SELECT_ITEM_BY_NAME, domain, itemName(feedEntry));
         return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
     }
 
