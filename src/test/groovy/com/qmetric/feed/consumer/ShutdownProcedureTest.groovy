@@ -19,13 +19,16 @@ class ShutdownProcedureTest extends Specification
         then:
         1 * service.shutdown()
         1 * service.awaitTermination(_ as Long, _ as TimeUnit) >> true
+        0 * service.shutdownNow()
     }
 
-    def 'forces shutdown if jobs fail to terminate'()
+    def 'forces shutdown if job termination times out'()
     {
         when:
         shutdown.run()
         then:
+        1 * service.isTerminated() >> false
+        1 * service.isShutdown() >> false
         1 * service.shutdown()
         1 * service.awaitTermination(_ as Long, _ as TimeUnit) >> false
         1 * service.shutdownNow()
@@ -36,6 +39,8 @@ class ShutdownProcedureTest extends Specification
         when:
         shutdown.run()
         then:
+        1 * service.isTerminated() >> false
+        1 * service.isShutdown() >> false
         1 * service.shutdown()
         1 * service.awaitTermination(_ as Long, _ as TimeUnit) >> { throw new InterruptedException() }
         1 * service.shutdownNow()
@@ -46,9 +51,11 @@ class ShutdownProcedureTest extends Specification
         when:
         shutdown.run()
         then:
+        1 * service.isTerminated() >> false
         1 * service.isShutdown() >> true
         0 * service.shutdown()
         1 * service.awaitTermination(_ as Long, _ as TimeUnit) >> true
+        0 * service.shutdownNow()
     }
 
     def 'does not attempt job termination if executor is already terminated'()
@@ -57,6 +64,6 @@ class ShutdownProcedureTest extends Specification
         shutdown.run()
         then:
         1 * service.isTerminated() >> true
-        0 * service.awaitTermination(_ as Long, _ as TimeUnit) >> true
+        0 * service._
     }
 }
