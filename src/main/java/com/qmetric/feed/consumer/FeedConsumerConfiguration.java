@@ -11,6 +11,7 @@ import com.qmetric.feed.consumer.metrics.FeedConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.PollingActivityHealthCheck;
 import com.qmetric.feed.consumer.store.FeedTracker;
 import com.sun.jersey.api.client.Client;
+import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
@@ -47,9 +48,7 @@ public class FeedConsumerConfiguration
 
     private Optional<EarliestEntryLimit> earliestEntryLimit = Optional.absent();
 
-    private ResourceResolver resourceResolver = new DefaultResourceResolver(feedEndpointFactory);
-
-    private FeedConsumerScheduler feedConsumerScheduler;
+    private ResourceResolver resourceResolver = new DefaultResourceResolver(feedEndpointFactory, new DefaultRepresentationFactory());
 
     public FeedConsumerConfiguration fromUrl(final String feedUrl)
     {

@@ -1,6 +1,5 @@
 package com.qmetric.feed.consumer;
 
-import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
 import com.theoryinpractise.halbuilder.api.Link;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
 import com.theoryinpractise.halbuilder.api.RepresentationFactory;
@@ -12,10 +11,10 @@ public class DefaultResourceResolver implements ResourceResolver
 
     private final FeedEndpointFactory endpoint;
 
-    public DefaultResourceResolver(final FeedEndpointFactory endpoint)
+    public DefaultResourceResolver(final FeedEndpointFactory endpoint, final RepresentationFactory representationFactory)
     {
         this.endpoint = endpoint;
-        representationFactory = new DefaultRepresentationFactory();
+        this.representationFactory = representationFactory;
     }
 
     @Override public ReadableRepresentation resolve(final Link link)
