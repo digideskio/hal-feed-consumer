@@ -2,15 +2,12 @@ package com.qmetric.feed.consumer
 
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.amazonaws.services.simpledb.model.Item
-import com.amazonaws.services.simpledb.model.SelectRequest
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.MockEntryHandler
 import com.qmetric.feed.consumer.utils.MockFeedHandler
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
-import org.junit.After
-import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import spark.Spark
@@ -31,8 +28,8 @@ class IntegrationTest
     private static final PAGE_SIZE = 3
     private static final FEED_SERVER_PORT = 15000
     private static final DOMAIN_NAME = userPrefixedDomainName('hal-feed-consumer-test')
-    private final String accessKey
-    private final String secretKey
+    private final String accessKey = getenv('HAL_CONSUMER_IT_AWS_ACCESS_KEY')
+    private final String secretKey = getenv('HAL_CONSUMER_IT_AWS_SECRET_KEY')
     private final AmazonSimpleDBClient simpleDBClient
     private final SimpleDBUtils simpleDBUtils
     private final FeedTracker tracker
@@ -43,9 +40,7 @@ class IntegrationTest
 
     public IntegrationTest()
     {
-        accessKey = getenv('HAL_CONSUMER_IT_AWS_ACCESS_KEY')
         checkState(!isBlank(accessKey), 'Missing env variable %s', 'HAL_CONSUMER_IT_AWS_ACCESS_KEY')
-        secretKey = getenv('HAL_CONSUMER_IT_AWS_SECRET_KEY')
         checkState(!isBlank(accessKey), 'Missing env variable %s', 'HAL_CONSUMER_IT_AWS_SECRET_KEY')
         simpleDBClient = new SimpleDBClientFactory(accessKey, secretKey).simpleDBClient()
         simpleDBUtils = new SimpleDBUtils(simpleDBClient)
@@ -64,18 +59,11 @@ class IntegrationTest
         Spark.get(new MockEntryHandler())
     }
 
-    @Before public void createDomain()
-    {
-        simpleDBUtils.createDomainAndWait(DOMAIN_NAME)
-    }
-
-    @After public void deleteSimpleDBDomain()
-    {
-        simpleDBUtils.deleteDomain(DOMAIN_NAME)
-    }
-
     @Test(timeout = 60000L) public void 'all entries provided by the mock feed are stored'()
     {
+        // Workaround: @Before and @After methods were not run at the right time on Travis
+        simpleDBUtils.createDomainAndWait(DOMAIN_NAME)
+
         consumer.start()
         waitConsumerToRunOnce(consumer)
         consumer.stop()
@@ -88,6 +76,9 @@ class IntegrationTest
             assertThat(attributes.containsKey('consuming'), equalTo(true))
             assertThat(attributes.containsKey('seen_at'), equalTo(true))
         }
+
+        // Workaround: @Before and @After methods were not run at the right time on Travis
+        simpleDBUtils.deleteDomain(DOMAIN_NAME)
     }
 
     private static void waitConsumerToRunOnce(FeedConsumerScheduler consumer)
