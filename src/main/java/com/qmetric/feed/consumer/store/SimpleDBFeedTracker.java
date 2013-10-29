@@ -51,7 +51,7 @@ public class SimpleDBFeedTracker implements FeedTracker
     private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select itemName() from `%s` where `" + CONSUMED_DATE_ATTR + "` is null " +
                                                               "and `" + CONSUMING_DATE_ATTR + "` is null " +
                                                               "and (`" + FAILURES_COUNT + "` is null or `" + FAILURES_COUNT + "` < '" + MAX_FAILURES + "') " +
-                                                              "limit 10";
+                                                              "limit 50";
 
     public static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
 

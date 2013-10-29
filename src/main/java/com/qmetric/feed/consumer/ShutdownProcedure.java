@@ -15,6 +15,8 @@ class ShutdownProcedure implements Runnable
 
     private static final Logger log = LoggerFactory.getLogger(ShutdownProcedure.class);
 
+    private static final int TIMEOUT = 90;
+
     private final ExecutorService executorService;
 
     private final Thread shutdownThread;
@@ -83,8 +85,8 @@ class ShutdownProcedure implements Runnable
 
     private void waitRunningJobsToTerminate() throws InterruptedException
     {
-        log.info("Terminating all executor-service jobs");
-        if (executorService.awaitTermination(30, SECONDS))
+        log.info("Terminating all executor-service jobs. Timeout is {} {}", TIMEOUT, SECONDS);
+        if (executorService.awaitTermination(TIMEOUT, SECONDS))
         {
             log.info("All jobs terminated normally");
         }
