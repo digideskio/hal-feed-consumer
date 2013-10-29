@@ -109,7 +109,7 @@ class AvailableFeedEntriesFinder
 
         private void flipPage(final List<? extends ReadableRepresentation> allFromPage, final List<? extends ReadableRepresentation> unconsumedFromPage)
         {
-            log.debug("Found {}/{} unconsumed entries", allFromPage.size(), unconsumedFromPage.size());
+            log.debug("Found {} unconsumed entries out of {}", unconsumedFromPage.size(), allFromPage.size());
 
             this.currentPage = allFromPage.size() == unconsumedFromPage.size() ? nextPage() : Optional.<ReadableRepresentation>absent();
 

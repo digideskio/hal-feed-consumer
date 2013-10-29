@@ -10,12 +10,12 @@ class ShutdownProcedureTest extends Specification
 
     def service = Mock(ExecutorService)
 
-    def shutdown = new ShutdownProcedure(service)
+    def procedure = new ShutdownProcedure(service)
 
     def 'stops executor-services and waits jobs to terminate'()
     {
         when:
-        shutdown.run()
+        procedure.run()
         then:
         1 * service.shutdown()
         1 * service.awaitTermination(_ as Long, _ as TimeUnit) >> true
@@ -25,7 +25,7 @@ class ShutdownProcedureTest extends Specification
     def 'forces shutdown if job termination times out'()
     {
         when:
-        shutdown.run()
+        procedure.run()
         then:
         1 * service.isTerminated() >> false
         1 * service.isShutdown() >> false
@@ -37,7 +37,7 @@ class ShutdownProcedureTest extends Specification
     def 'forces shutdown if jobs termination throws exception'()
     {
         when:
-        shutdown.run()
+        procedure.run()
         then:
         1 * service.isTerminated() >> false
         1 * service.isShutdown() >> false
@@ -49,7 +49,7 @@ class ShutdownProcedureTest extends Specification
     def 'does not attempt shutdown if executor is already shutdown'()
     {
         when:
-        shutdown.run()
+        procedure.run()
         then:
         1 * service.isTerminated() >> false
         1 * service.isShutdown() >> true
@@ -61,7 +61,7 @@ class ShutdownProcedureTest extends Specification
     def 'does not attempt job termination if executor is already terminated'()
     {
         when:
-        shutdown.run()
+        procedure.run()
         then:
         1 * service.isTerminated() >> true
         0 * service._
