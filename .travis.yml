@@ -2,3 +2,10 @@ language: java
 jdk:
   - openjdk6
   - openjdk7
+env:
+  global:
+    - secure: EyGZtcnwGSXbpaHwCZtcQv582lGEGi9icml4zvJhcqC+zRTJGcesRqCHy0dl94L0LSuucqDZCejwyZ9s2HGXSmedqL6qFRsHx2JbucrnklAe7lDdcOO6iZSixdedq1bwgY591NvcHwa+P9P3C0jjTaj+UpqvRl7Tr2ZUwTu5tG8=
+    - secure: FAr4GuOjYi9W4RuzTKpuECr4b0F4kuqM6Zyy+dFUr9k5dhVWzFE3LGBW20OM9x/+demwjOY2zGOGKiNFIqRTWWWgKrK7lp0vo86VWaqnd0f+4hA28jE0BQ6DZTAVLjl+mMHMATz7tYAQwGeVixWetnUqLbYkYCkxXDKxog450s4=
+branches:
+  except:
+    - /_.*$/
