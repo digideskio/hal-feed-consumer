@@ -2,10 +2,7 @@ package com.qmetric.feed.consumer
 
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.amazonaws.services.simpledb.model.Item
-import com.amazonaws.services.simpledb.model.PutAttributesRequest
-import com.amazonaws.services.simpledb.model.ReplaceableAttribute
 import com.amazonaws.services.simpledb.model.SelectRequest
-import com.google.common.collect.FluentIterable
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.MockEntryHandler
@@ -37,6 +34,7 @@ class IntegrationTest
     private final String accessKey
     private final String secretKey
     private final AmazonSimpleDBClient simpleDBClient
+    private final SimpleDBUtils simpleDBUtils
     private final FeedTracker tracker
 
     private final ConsumeAction action = mock(ConsumeAction)
@@ -50,6 +48,7 @@ class IntegrationTest
         secretKey = getenv('HAL_CONSUMER_IT_AWS_SECRET_KEY')
         checkState(!isBlank(accessKey), 'Missing env variable %s', 'HAL_CONSUMER_IT_AWS_SECRET_KEY')
         simpleDBClient = new SimpleDBClientFactory(accessKey, secretKey).simpleDBClient()
+        simpleDBUtils = new SimpleDBUtils(simpleDBClient)
         tracker = new SimpleDBFeedTracker(simpleDBClient, DOMAIN_NAME)
         consumer = new FeedConsumerConfiguration()
                 .consumeEachEntryWith(action)
@@ -67,21 +66,21 @@ class IntegrationTest
 
     @Before public void createDomain()
     {
-        new SimpleDBUtils(simpleDBClient).createDomainAndWait(DOMAIN_NAME)
+        simpleDBUtils.createDomainAndWait(DOMAIN_NAME)
     }
 
     @After public void deleteSimpleDBDomain()
     {
-        new SimpleDBUtils(simpleDBClient).deleteDomain(DOMAIN_NAME)
+        simpleDBUtils.deleteDomain(DOMAIN_NAME)
     }
 
-    @Test(timeout = 60000L) public void 'all entries provided by the mock feed are stored '()
+    @Test(timeout = 60000L) public void 'all entries provided by the mock feed are stored'()
     {
         consumer.start()
         waitConsumerToRunOnce(consumer)
         consumer.stop()
         verify(action, times(FEED_SIZE)).consume(any(ReadableRepresentation))
-        def result = simpleDBClient.select(new SelectRequest("select * from `${DOMAIN_NAME}`", true))
+        def result = simpleDBUtils.select("select * from `${DOMAIN_NAME}`")
         assertThat(result.items.size(), equalTo(FEED_SIZE))
         result.items.each { Item it ->
             def attributes = it.attributes.collectEntries { [it.name, it.value] }
