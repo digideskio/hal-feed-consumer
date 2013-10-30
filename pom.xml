@@ -43,6 +43,13 @@
             <organization>qmetric</organization>
             <organizationUrl>https://github.com/organizations/qmetric</organizationUrl>
         </developer>
+        <developer>
+            <id>qmg-amecca</id>
+            <name>Alessandro Mecca</name>
+            <email>amecca@qmetric.co.uk</email>
+            <organization>qmetric</organization>
+            <organizationUrl>https://github.com/organizations/qmetric</organizationUrl>
+        </developer>
     </developers>
 
     <dependencies>
