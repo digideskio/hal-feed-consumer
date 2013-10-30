@@ -7,3 +7,5 @@ env:
 branches:
   except:
     - /_.*$/
+after_failure: ./print_surefire_reports.sh
+
