@@ -50,7 +50,7 @@ class MultipleClientTest
         new SimpleDBUtils(client).deleteDomain(DOMAIN_NAME)
     }
 
-    @Test public void 'a consumer picks up entries /not on the last page/ which another consumer previsouly failed to process'()
+    @Test public void 'a consumer picks up entries _not on the last page_ which another consumer previsouly failed to process'()
     {
         def slowActionThread = runConsumerInOwnThreadWith(slowFaultyAction)
 
