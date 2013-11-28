@@ -31,7 +31,7 @@ Then, build and start a feed consumer:
 ```java
 final FeedConsumerConfiguration feedConsumerConfiguration = new FeedConsumerConfiguration()
                 .fromUrl("http://your-feed-endpoint")
-                .withFeedTracker(consumedStore)
+                .withFeedTracker(feedTracker)
                 .consumeEachEntryWith(new ConsumeAction() {
                                           @Override public void consume(final ReadableRepresentation feedEntry) {
                                               System.out.println("write your code here to consume the next feed entry...");
