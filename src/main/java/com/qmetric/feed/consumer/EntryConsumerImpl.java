@@ -57,11 +57,11 @@ public class EntryConsumerImpl implements EntryConsumer
         {
             consumeAction.consume(feedEntry);
         }
-        catch (final Exception e)
+        catch (final Throwable e)
         {
             consumedStore.revertConsuming(feedEntry);
 
-            throw e;
+            throw new Exception(e);
         }
     }
 

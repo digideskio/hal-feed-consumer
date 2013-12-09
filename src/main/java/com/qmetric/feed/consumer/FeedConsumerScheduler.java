@@ -56,7 +56,7 @@ public class FeedConsumerScheduler
         {
             LOG.info("Entry in feed already being consumed by another consumer...skipping");
         }
-        catch (final Exception e)
+        catch (final Throwable e)
         {
             LOG.error("Failed to consume feed", e);
         }

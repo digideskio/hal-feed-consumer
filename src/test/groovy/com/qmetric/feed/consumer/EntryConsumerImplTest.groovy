@@ -47,7 +47,7 @@ class EntryConsumerImplTest extends Specification {
         thrown(AlreadyConsumingException)
     }
 
-    def "should revert consuming state if error occurs whilst consuming entry"()
+    def "should revert consuming state if error occurs whilst consuming exception"()
     {
         given:
         consumeAction.consume(_) >> { throw new Exception() }
@@ -61,7 +61,21 @@ class EntryConsumerImplTest extends Specification {
         thrown(Exception)
     }
 
-    def "should retry to set consumed state on error"()
+    def "should revert consuming state if error occurs whilst consuming error"()
+    {
+        given:
+        consumeAction.consume(_) >> { throw new Error() }
+
+        when:
+        consumer.consume(feedEntry)
+
+        then:
+        0 * consumedStore.markAsConsumed(_)
+        1 * consumedStore.revertConsuming(_)
+        thrown(Exception)
+    }
+
+    def "should retry to set consumed state on exception"()
     {
         when:
         consumer.consume(feedEntry)
