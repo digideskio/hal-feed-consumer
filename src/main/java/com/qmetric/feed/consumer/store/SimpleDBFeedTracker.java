@@ -18,12 +18,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
-import com.theoryinpractise.halbuilder.api.Link;
+import com.qmetric.feed.consumer.EntryId;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-
-import javax.annotation.Nullable;
 
 import java.util.List;
 
@@ -33,7 +30,6 @@ import static org.joda.time.DateTime.now;
 
 public class SimpleDBFeedTracker implements FeedTracker
 {
-
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("yyyy/MM/dd HH:mm:ss");
 
     private static final String CONDITIONAL_CHECK_FAILED_ERROR_CODE = "ConditionalCheckFailed";
@@ -53,13 +49,13 @@ public class SimpleDBFeedTracker implements FeedTracker
                                                               "and (`" + FAILURES_COUNT + "` is null or `" + FAILURES_COUNT + "` < '" + MAX_FAILURES + "') " +
                                                               "limit 50";
 
-    public static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
+    private static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
 
-    public static final Function<Item, Link> ITEM_TO_LINK = new Function<Item, Link>()
+    private static final Function<Item, EntryId> ITEM_TO_ENTRY_ID = new Function<Item, EntryId>()
     {
-        @Nullable @Override public Link apply(final Item input)
+        @Override public EntryId apply(final Item input)
         {
-            return new Link(new DefaultRepresentationFactory(), "self", input.getName());
+            return EntryId.of(input.getName());
         }
     };
 
@@ -99,11 +95,11 @@ public class SimpleDBFeedTracker implements FeedTracker
         }
     }
 
-    @Override public void markAsConsuming(final Link link) throws AlreadyConsumingException
+    @Override public void markAsConsuming(final EntryId id) throws AlreadyConsumingException
     {
         try
         {
-            run(putRequest(link, IF_NOT_ALREADY_CONSUMING, withCurrentDate(CONSUMING_DATE_ATTR)));
+            run(putRequest(id, IF_NOT_ALREADY_CONSUMING, withCurrentDate(CONSUMING_DATE_ATTR)));
         }
         catch (final AmazonServiceException e)
         {
@@ -118,41 +114,41 @@ public class SimpleDBFeedTracker implements FeedTracker
         }
     }
 
-    @Override public void revertConsuming(final Link feedEntry)
+    @Override public void revertConsuming(final EntryId id)
     {
-        run(deleteRequest(feedEntry, attribute(CONSUMING_DATE_ATTR)));
+        run(deleteRequest(id, attribute(CONSUMING_DATE_ATTR)));
     }
 
-    @Override public void fail(final Link link)
+    @Override public void fail(final EntryId id)
     {
-        final GetAttributesResult response = run(getAttributeRequest(link, FAILURES_COUNT));
+        final GetAttributesResult response = run(getAttributeRequest(id, FAILURES_COUNT));
         final Optional<Attribute> failuresCount = from(response.getAttributes()).firstMatch(IS_FAILURE_COUNT);
         final int currentCount = Integer.valueOf(failuresCount.or(ZERO_FAILURES).getValue());
         final int nextCount = currentCount + 1;
-        PutAttributesRequest request = putRequest(link, new ReplaceableAttribute(FAILURES_COUNT, format(ZEROPADDED_INTEGER, nextCount), true));
+        PutAttributesRequest request = putRequest(id, new ReplaceableAttribute(FAILURES_COUNT, format(ZEROPADDED_INTEGER, nextCount), true));
         run(request);
-        revertConsuming(link);
+        revertConsuming(id);
     }
 
-    @Override public void markAsConsumed(final Link feedEntry)
+    @Override public void markAsConsumed(final EntryId id)
     {
-        run(putRequest(feedEntry, withCurrentDate(CONSUMED_DATE_ATTR)));
+        run(putRequest(id, withCurrentDate(CONSUMED_DATE_ATTR)));
     }
 
-    @Override public boolean isTracked(final Link feedEntry)
+    @Override public boolean isTracked(final EntryId feedEntry)
     {
         return getEntry(feedEntry).isPresent();
     }
 
-    @Override public void track(final Link link)
+    @Override public void track(final EntryId id)
     {
         final ReplaceableAttribute seen_at = new ReplaceableAttribute().withName("seen_at").withValue(currentDate()).withReplace(false);
-        run(putRequest(link, seen_at));
+        run(putRequest(id, seen_at));
     }
 
-    @Override public Iterable<Link> getItemsToBeConsumed()
+    @Override public Iterable<EntryId> getItemsToBeConsumed()
     {
-        return from(run(selectToBeConsumed())).transform(ITEM_TO_LINK);
+        return from(run(selectToBeConsumed())).transform(ITEM_TO_ENTRY_ID);
     }
 
     public int countConsuming()
@@ -169,15 +165,15 @@ public class SimpleDBFeedTracker implements FeedTracker
         return Integer.valueOf(count);
     }
 
-    private Optional<Item> getEntry(final Link feedEntry)
+    private Optional<Item> getEntry(final EntryId id)
     {
-        final List<Item> result = run(selectItem(feedEntry));
+        final List<Item> result = run(selectItem(id));
         return from(result).first();
     }
 
-    private SelectRequest selectItem(final Link feedEntry)
+    private SelectRequest selectItem(final EntryId id)
     {
-        String query = format(SELECT_ITEM_BY_NAME, domain, itemName(feedEntry));
+        String query = format(SELECT_ITEM_BY_NAME, domain, id);
         return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
     }
 
@@ -197,24 +193,24 @@ public class SimpleDBFeedTracker implements FeedTracker
         return run(new DomainMetadataRequest(domain));
     }
 
-    private GetAttributesRequest getAttributeRequest(final Link link, final String... attributes)
+    private GetAttributesRequest getAttributeRequest(final EntryId id, final String... attributes)
     {
-        return new GetAttributesRequest(domain, itemName(link)).withAttributeNames(attributes);
+        return new GetAttributesRequest(domain, id.toString()).withAttributeNames(attributes);
     }
 
-    private PutAttributesRequest putRequest(final Link link, final ReplaceableAttribute... attributes)
+    private PutAttributesRequest putRequest(final EntryId id, final ReplaceableAttribute... attributes)
     {
-        return new PutAttributesRequest(domain, itemName(link), asList(attributes));
+        return new PutAttributesRequest(domain, id.toString(), asList(attributes));
     }
 
-    private PutAttributesRequest putRequest(final Link link, final UpdateCondition updateCondition, final ReplaceableAttribute... attributes)
+    private PutAttributesRequest putRequest(final EntryId id, final UpdateCondition updateCondition, final ReplaceableAttribute... attributes)
     {
-        return new PutAttributesRequest(domain, itemName(link), asList(attributes), updateCondition);
+        return new PutAttributesRequest(domain, id.toString(), asList(attributes), updateCondition);
     }
 
-    private DeleteAttributesRequest deleteRequest(final Link link, final Attribute... attributes)
+    private DeleteAttributesRequest deleteRequest(final EntryId id, final Attribute... attributes)
     {
-        return new DeleteAttributesRequest(domain, itemName(link), asList(attributes));
+        return new DeleteAttributesRequest(domain, id.toString(), asList(attributes));
     }
 
     private List<Item> run(final SelectRequest request)
@@ -260,10 +256,5 @@ public class SimpleDBFeedTracker implements FeedTracker
     private static String currentDate()
     {
         return DATE_FORMATTER.print(now());
-    }
-
-    private static String itemName(final Link feedEntry)
-    {
-        return feedEntry.getHref();
     }
 }

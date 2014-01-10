@@ -3,6 +3,7 @@ package com.qmetric.feed.consumer
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry
+import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.FeedTracker
 import org.joda.time.DateTime
 import spock.lang.Specification
@@ -10,8 +11,7 @@ import spock.lang.Specification
 import java.util.concurrent.TimeUnit
 
 @SuppressWarnings("GroovyAccessibility")
-class FeedConsumerConfigurationTest extends Specification
-{
+class FeedConsumerConfigurationTest extends Specification {
 
     final feedConsumerConfiguration = new FeedConsumerConfiguration()
 
@@ -137,6 +137,6 @@ class FeedConsumerConfigurationTest extends Specification
         feedConsumerConfiguration.withResourceResolver(resourceResolver)
 
         then:
-        feedConsumerConfiguration.resourceResolver == resourceResolver
+        feedConsumerConfiguration.resourceResolver == Optional.of(resourceResolver)
     }
 }

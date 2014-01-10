@@ -5,8 +5,7 @@ import spock.lang.Specification
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-class FeedConsumerSchedulerTest extends Specification
-{
+class FeedConsumerSchedulerTest extends Specification {
 
     final interval = new Interval(1, TimeUnit.MINUTES)
 

@@ -27,6 +27,8 @@ class AvailableFeedEntriesFinder
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss");
 
+    private static final String ENTRY_ID = "_id";
+
     private final FeedEndpoint endpoint;
 
     private final FeedTracker feedTracker;
@@ -55,7 +57,7 @@ class AvailableFeedEntriesFinder
     {
         for (ReadableRepresentation e : newEntries)
         {
-            feedTracker.track(e.getResourceLink());
+            feedTracker.track(idOf(e));
         }
     }
 
@@ -64,6 +66,11 @@ class AvailableFeedEntriesFinder
         return from(concat(ImmutableList.copyOf(new UnconsumedPageIterator()))) //
                 .toList() //
                 .reverse();
+    }
+
+    private EntryId idOf(final ReadableRepresentation entry)
+    {
+        return EntryId.of((String) entry.getValue(ENTRY_ID));
     }
 
     private class UnconsumedPageIterator implements Iterator<List<? extends ReadableRepresentation>>
@@ -146,9 +153,9 @@ class AvailableFeedEntriesFinder
                     return hasConsumablePublishedDate(input) && isNotTracked(input);
                 }
 
-                private boolean isNotTracked(final ReadableRepresentation input)
+                private boolean isNotTracked(final ReadableRepresentation entry)
                 {
-                    return !feedTracker.isTracked(input.getResourceLink());
+                    return !feedTracker.isTracked(idOf(entry));
                 }
 
                 private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)

@@ -12,7 +12,6 @@ import static com.theoryinpractise.halbuilder.api.RepresentationFactory.HAL_JSON
 
 public class FeedEndpoint
 {
-
     private final WebResource resource;
 
     public FeedEndpoint(final WebResource resource)

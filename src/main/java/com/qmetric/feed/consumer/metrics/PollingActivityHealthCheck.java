@@ -3,9 +3,9 @@ package com.qmetric.feed.consumer.metrics;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Optional;
 import com.qmetric.feed.consumer.EntryConsumerListener;
+import com.qmetric.feed.consumer.EntryId;
 import com.qmetric.feed.consumer.FeedPollingListener;
 import com.qmetric.feed.consumer.Interval;
-import com.theoryinpractise.halbuilder.api.Link;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
@@ -42,12 +42,12 @@ public class PollingActivityHealthCheck extends HealthCheck implements FeedPolli
         return !lastConsumed.isPresent() || durationSinceLastConsumedIsLongerThanTolerableDelay() ? unhealthyResult() : healthyResult();
     }
 
-    @Override public void consumed(final List<Link> consumedEntries)
+    @Override public void consumed(final List<EntryId> consumedEntries)
     {
         refreshLastConsumedDate();
     }
 
-    @Override public void consumed(final Link consumedEntry)
+    @Override public void consumed(final EntryId consumedEntry)
     {
         refreshLastConsumedDate();
     }

@@ -30,7 +30,7 @@ public class FeedConsumerConfiguration
 
     private final Client feedClient = new Client();
 
-    private final FeedEndpointFactory feedEndpointFactory = new FeedEndpointFactory(feedClient, new FeedEndpointFactory.ConnectioTimeout(MINUTES, 1));
+    private final FeedEndpointFactory feedEndpointFactory = new FeedEndpointFactory(feedClient, new FeedEndpointFactory.ConnectionTimeout(MINUTES, 1));
 
     private HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
 
@@ -48,7 +48,7 @@ public class FeedConsumerConfiguration
 
     private Optional<EarliestEntryLimit> earliestEntryLimit = Optional.absent();
 
-    private ResourceResolver resourceResolver = new DefaultResourceResolver(feedEndpointFactory, new DefaultRepresentationFactory());
+    private Optional<ResourceResolver> resourceResolver = Optional.absent();
 
     public FeedConsumerConfiguration fromUrl(final String feedUrl)
     {
@@ -66,7 +66,7 @@ public class FeedConsumerConfiguration
 
     public FeedConsumerConfiguration withResourceResolver(final ResourceResolver resourceResolver)
     {
-        this.resourceResolver = resourceResolver;
+        this.resourceResolver = Optional.of(resourceResolver);
 
         return this;
     }
@@ -166,13 +166,18 @@ public class FeedConsumerConfiguration
 
     private FeedConsumer feedConsumer()
     {
-        final FeedConsumer consumer = new FeedConsumerImpl(entryconsumer(), feedTracker, feedPollingListeners);
+        final FeedConsumer consumer = new FeedConsumerImpl(entryConsumer(), feedTracker, feedPollingListeners);
         return new FeedConsumerWithMetrics(metricRegistry, consumer);
     }
 
-    private EntryConsumerWithMetrics entryconsumer()
+    private EntryConsumerWithMetrics entryConsumer()
     {
-        return new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, entryConsumerListeners));
+        return new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners));
+    }
+
+    private ResourceResolver resourceResolver()
+    {
+        return resourceResolver.or(new DefaultResourceResolver(feedUrl, feedEndpointFactory, new DefaultRepresentationFactory()));
     }
 
     private void validateConfiguration()
@@ -181,7 +186,7 @@ public class FeedConsumerConfiguration
         checkNotNull(pollingInterval, "Missing polling interval");
         checkNotNull(consumeAction, "Missing entry consumer action");
         checkNotNull(feedTracker, "Missing consumed store");
-        checkNotNull(resourceResolver, "Missing resrouce resolver");
+        checkNotNull(resourceResolver(), "Missing resrouce resolver");
     }
 
     private void configureHealthChecks()

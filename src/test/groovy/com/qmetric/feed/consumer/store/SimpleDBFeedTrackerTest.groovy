@@ -1,26 +1,24 @@
 package com.qmetric.feed.consumer.store
-
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.simpledb.AmazonSimpleDB
 import com.amazonaws.services.simpledb.model.*
-import com.theoryinpractise.halbuilder.api.Link
-import com.theoryinpractise.halbuilder.api.RepresentationFactory
+import com.qmetric.feed.consumer.EntryId
 import spock.lang.Specification
 
 import static com.google.common.collect.Iterables.size
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
 import static net.java.quickcheck.generator.PrimitiveGeneratorsIterables.someObjects
 import static org.apache.commons.lang3.StringUtils.isBlank
-import static org.junit.Assert.fail
 
-class SimpleDBFeedTrackerTest extends Specification
-{
+class SimpleDBFeedTrackerTest extends Specification {
+
     private static FAILURES_COUNT = 'failures_count'
+
     private static CONSUMING = "consuming"
 
     final domain = anyNonEmptyString()
 
-    final feedEntry = new Link(Mock(RepresentationFactory), anyNonEmptyString(), anyNonEmptyString())
+    final feedEntry = EntryId.of(anyNonEmptyString())
 
     final simpleDBClient = Mock(AmazonSimpleDB)
 
@@ -66,7 +64,7 @@ class SimpleDBFeedTrackerTest extends Specification
         then:
         1 * simpleDBClient.deleteAttributes(_) >> { DeleteAttributesRequest r ->
             assert r.domainName == domain
-            assert r.itemName == feedEntry.href
+            assert r.itemName == feedEntry.toString()
             assert r.attributes.size() == 1
             assert r.attributes.get(0).getName() == CONSUMING
         }
@@ -80,7 +78,7 @@ class SimpleDBFeedTrackerTest extends Specification
         then: 'get current failures count'
         1 * simpleDBClient.getAttributes(_ as GetAttributesRequest) >> { GetAttributesRequest it ->
             assert it.domainName == domain
-            assert it.itemName == feedEntry.href
+            assert it.itemName == feedEntry.toString()
             assert it.attributeNames == [FAILURES_COUNT]
             return new GetAttributesResult().withAttributes(initialAttributes)
         }
@@ -88,14 +86,14 @@ class SimpleDBFeedTrackerTest extends Specification
         and: 'increment failures count'
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest it ->
             assert it.domainName == domain
-            assert it.itemName == feedEntry.href
+            assert it.itemName == feedEntry.toString()
             assert it.attributes.size() == 1
             assert it.attributes.contains(expectedAttribute)
         }
         and: 'revert consuming'
         1 * simpleDBClient.deleteAttributes(_ as DeleteAttributesRequest) >> { DeleteAttributesRequest r ->
             assert r.domainName == domain
-            assert r.itemName == feedEntry.href
+            assert r.itemName == feedEntry.toString()
             assert r.attributes.size() == 1
             assert r.attributes.get(0).getName() == CONSUMING
         }
@@ -118,7 +116,7 @@ class SimpleDBFeedTrackerTest extends Specification
         then:
         simpleDBClient.putAttributes(_) >> { PutAttributesRequest r ->
             assert r.domainName == domain
-            assert r.itemName == feedEntry.href
+            assert r.itemName == feedEntry.toString()
             assert r.attributes.size() == 1
             def attribute = r.attributes.get(0)
             assert attribute.name == "consumed"
@@ -134,7 +132,7 @@ class SimpleDBFeedTrackerTest extends Specification
         then:
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest r ->
             assert r.domainName == domain
-            assert r.itemName == feedEntry.href
+            assert r.itemName == feedEntry.toString()
             assert r.attributes.size() == 1
             def attribute = r.attributes.get(0)
             assert attribute.name == "seen_at"
@@ -205,8 +203,8 @@ class SimpleDBFeedTrackerTest extends Specification
         someObjects().collect { new Item() }
     }
 
-    private static String itemName(final Link entry)
+    private static String itemName(final EntryId entry)
     {
-        entry.href
+        entry.toString()
     }
 }

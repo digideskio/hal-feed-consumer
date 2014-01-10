@@ -1,18 +1,15 @@
 package com.qmetric.feed.consumer
-
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.FeedTracker
-import com.theoryinpractise.halbuilder.api.Link
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
-import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import spock.lang.Specification
 
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
-class EntryConsumerImplTest extends Specification
-{
+class EntryConsumerImplTest extends Specification {
 
     final consumeAction = Mock(ConsumeAction)
+
     final resourceResolver = Mock(ResourceResolver)
 
     final feedTracker = Mock(FeedTracker)
@@ -21,28 +18,29 @@ class EntryConsumerImplTest extends Specification
 
     final consumer = new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, [listener])
 
-    def link = new Link(Mock(RepresentationFactory), anyString(), anyString())
+    def entryId = EntryId.of(anyString())
+
     def resource = Mock(ReadableRepresentation)
 
     def "should consume entry"()
     {
         when:
-        consumer.consume(link)
+        consumer.consume(entryId)
 
         then:
-        1 * feedTracker.markAsConsuming(link)
-        1 * resourceResolver.resolve(link) >> resource
+        1 * feedTracker.markAsConsuming(entryId)
+        1 * resourceResolver.resolve(entryId) >> resource
         1 * consumeAction.consume(resource)
-        1 * feedTracker.markAsConsumed(link)
+        1 * feedTracker.markAsConsumed(entryId)
     }
 
     def "should not consume entry if already being consumed by another consumer"()
     {
         when:
-        consumer.consume(link)
+        consumer.consume(entryId)
 
         then:
-        1 * feedTracker.markAsConsuming(link) >> { throw new AlreadyConsumingException() }
+        1 * feedTracker.markAsConsuming(entryId) >> { throw new AlreadyConsumingException() }
         0 * consumeAction._
         0 * feedTracker._
         thrown(AlreadyConsumingException)
@@ -51,7 +49,7 @@ class EntryConsumerImplTest extends Specification
     def "should mark entry as failed if error occurs whilst consuming entry (mark fail should also revert consuming)"()
     {
         when:
-        consumer.consume(link)
+        consumer.consume(entryId)
 
         then:
         1 * consumeAction.consume(_) >> { throw new Exception() }
@@ -63,7 +61,7 @@ class EntryConsumerImplTest extends Specification
     def "should retry to set consumed state on error"()
     {
         when:
-        consumer.consume(link)
+        consumer.consume(entryId)
 
         then:
         1 * feedTracker.markAsConsumed(_) >> { throw new Exception() }
@@ -75,9 +73,9 @@ class EntryConsumerImplTest extends Specification
     def "should notify listeners on consuming entry"()
     {
         when:
-        consumer.consume(link)
+        consumer.consume(entryId)
 
         then:
-        1 * listener.consumed(link)
+        1 * listener.consumed(entryId)
     }
 }

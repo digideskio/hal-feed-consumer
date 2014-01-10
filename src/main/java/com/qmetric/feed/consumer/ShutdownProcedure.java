@@ -12,7 +12,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 class ShutdownProcedure implements Runnable
 {
-
     private static final Logger log = LoggerFactory.getLogger(ShutdownProcedure.class);
 
     private static final int TIMEOUT = 90;

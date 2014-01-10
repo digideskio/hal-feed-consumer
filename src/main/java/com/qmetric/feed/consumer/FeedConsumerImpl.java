@@ -2,7 +2,6 @@ package com.qmetric.feed.consumer;
 
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.FeedTracker;
-import com.theoryinpractise.halbuilder.api.Link;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 public class FeedConsumerImpl implements FeedConsumer
 {
-
-    private static final Logger log = LoggerFactory.getLogger(FeedConsumerImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FeedConsumerImpl.class);
 
     private final EntryConsumer entryConsumer;
 
@@ -30,12 +28,12 @@ public class FeedConsumerImpl implements FeedConsumer
     }
 
     @Override
-    public List<Link> consume() throws Exception
+    public List<EntryId> consume() throws Exception
     {
         return consume(unconsumed());
     }
 
-    private List<Link> consume(final List<Link> entries) throws Exception
+    private List<EntryId> consume(final List<EntryId> entries) throws Exception
     {
         processEach(entries);
 
@@ -44,37 +42,32 @@ public class FeedConsumerImpl implements FeedConsumer
         return entries;
     }
 
-    private void processEach(final List<Link> entries) throws Exception
+    private void processEach(final List<EntryId> entries) throws Exception
     {
-        for (final Link feedEntry : entries)
+        for (final EntryId id : entries)
         {
             try
             {
-                log.debug("Consuming entry {}", getHref(feedEntry));
-                entryConsumer.consume(feedEntry);
+                LOG.debug("Consuming entry {}", id);
+                entryConsumer.consume(id);
             }
             catch (AlreadyConsumingException e)
             {
-                log.info("Entry {} already being consumed", getHref(feedEntry), e);
+                LOG.info("Entry {} already being consumed", id, e);
             }
             catch (Exception e)
             {
-                log.warn("Entry {} failed processing", getHref(feedEntry), e);
+                LOG.warn("Entry {} failed processing", id, e);
             }
         }
     }
 
-    private String getHref(final Link feedEntry)
-    {
-        return feedEntry.getHref();
-    }
-
-    private List<Link> unconsumed()
+    private List<EntryId> unconsumed()
     {
         return from(feedTracker.getItemsToBeConsumed()).toList();
     }
 
-    private void notifyAllListeners(final List<Link> consumedEntries)
+    private void notifyAllListeners(final List<EntryId> consumedEntries)
     {
         for (final FeedPollingListener listener : listeners)
         {

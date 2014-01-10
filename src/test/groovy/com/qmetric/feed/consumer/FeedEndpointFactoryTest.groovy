@@ -12,11 +12,10 @@ import spock.lang.Timeout
 
 import static java.util.concurrent.TimeUnit.SECONDS
 
-class FeedEndpointFactoryTest extends Specification
-{
+class FeedEndpointFactoryTest extends Specification {
 
     private static final Logger log = LoggerFactory.getLogger(FeedEndpointFactoryTest)
-    static timeout = new FeedEndpointFactory.ConnectioTimeout(SECONDS, 1)
+    static timeout = new FeedEndpointFactory.ConnectionTimeout(SECONDS, 1)
     private static final int SERVER_PORT = 15001
     private static final String FEED_PATH = "/service-path"
 

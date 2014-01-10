@@ -5,7 +5,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingWindowReservoir;
 import com.codahale.metrics.Timer;
 import com.qmetric.feed.consumer.EntryConsumer;
-import com.theoryinpractise.halbuilder.api.Link;
+import com.qmetric.feed.consumer.EntryId;
 
 public class EntryConsumerWithMetrics implements EntryConsumer
 {
@@ -28,13 +28,13 @@ public class EntryConsumerWithMetrics implements EntryConsumer
         this.next = next;
     }
 
-    @Override public void consume(final Link feedEntry) throws Exception
+    @Override public void consume(final EntryId id) throws Exception
     {
         final Timer.Context context = timer.time();
 
         try
         {
-            next.consume(feedEntry);
+            next.consume(id);
 
             successMeter.mark();
         }

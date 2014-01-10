@@ -4,7 +4,6 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.RetryerBuilder;
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.FeedTracker;
-import com.theoryinpractise.halbuilder.api.Link;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
 
 import java.util.Collection;
@@ -40,57 +39,57 @@ public class EntryConsumerImpl implements EntryConsumer
     }
 
     @Override
-    public void consume(Link link) throws Exception
+    public void consume(EntryId id) throws Exception
     {
-        markAsConsuming(link);
+        markAsConsuming(id);
 
-        process(link);
+        process(id);
 
-        markAsConsumed(link);
+        markAsConsumed(id);
 
-        notifyAllListeners(link);
+        notifyAllListeners(id);
     }
 
-    private void markAsConsuming(final Link link) throws AlreadyConsumingException
+    private void markAsConsuming(final EntryId id) throws AlreadyConsumingException
     {
-        feedTracker.markAsConsuming(link);
+        feedTracker.markAsConsuming(id);
     }
 
-    private void process(final Link link) throws Exception
+    private void process(final EntryId id) throws Exception
     {
         try
         {
-            consumeAction.consume(fetchFeedEntry(link));
+            consumeAction.consume(fetchFeedEntry(id));
         }
         catch (final Exception e)
         {
-            feedTracker.fail(link);
+            feedTracker.fail(id);
             throw e;
         }
     }
 
-    private ReadableRepresentation fetchFeedEntry(final Link link)
+    private ReadableRepresentation fetchFeedEntry(final EntryId id)
     {
-        return resourceResolver.resolve(link);
+        return resourceResolver.resolve(id);
     }
 
-    private void markAsConsumed(final Link feedEntry) throws ExecutionException, RetryException
+    private void markAsConsumed(final EntryId id) throws ExecutionException, RetryException
     {
         RETRY_BUILDER.build().call(new Callable<Void>()
         {
             @Override public Void call() throws Exception
             {
-                feedTracker.markAsConsumed(feedEntry);
+                feedTracker.markAsConsumed(id);
                 return null;
             }
         });
     }
 
-    private void notifyAllListeners(final Link consumedEntry)
+    private void notifyAllListeners(final EntryId id)
     {
         for (final EntryConsumerListener listener : listeners)
         {
-            listener.consumed(consumedEntry);
+            listener.consumed(id);
         }
     }
 }

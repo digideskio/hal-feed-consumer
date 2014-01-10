@@ -9,8 +9,7 @@ import static com.sun.jersey.api.client.ClientResponse.Status.OK
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
 import static org.apache.commons.io.IOUtils.toString
 
-class FeedEndpointTest extends Specification
-{
+class FeedEndpointTest extends Specification {
     def "should send request to endpoint and return response as io reader"()
     {
         given:

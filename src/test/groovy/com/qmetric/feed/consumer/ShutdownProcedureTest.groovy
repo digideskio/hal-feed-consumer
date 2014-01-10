@@ -5,8 +5,7 @@ import spock.lang.Specification
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 
-class ShutdownProcedureTest extends Specification
-{
+class ShutdownProcedureTest extends Specification {
 
     def service = Mock(ExecutorService)
 

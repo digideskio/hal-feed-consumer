@@ -1,9 +1,7 @@
 package com.qmetric.feed.consumer
-
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
-import com.theoryinpractise.halbuilder.api.Link
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
 import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import com.theoryinpractise.halbuilder.impl.representations.MutableRepresentation
@@ -23,8 +21,7 @@ import static org.hamcrest.core.IsEqual.equalTo
 import static org.junit.Assert.assertThat
 import static org.mockito.Mockito.mock
 
-class MultipleClientTest
-{
+class MultipleClientTest {
     private static final FEED_SIZE = 9
     private static final String MARKER = 'throw-exception'
     private static final AmazonSimpleDBClient client = new SimpleDBClientFactory(getenv('HAL_CONSUMER_IT_AWS_ACCESS_KEY'), getenv('HAL_CONSUMER_IT_AWS_SECRET_KEY')).simpleDBClient()
@@ -32,9 +29,9 @@ class MultipleClientTest
     private static final SimpleDBFeedTracker tracker = new SimpleDBFeedTracker(client, DOMAIN_NAME)
     private static final executor = Executors.newFixedThreadPool(2)
     private static final resolver = new ResourceResolver() {
-        @Override ReadableRepresentation resolve(final Link link)
+        @Override ReadableRepresentation resolve(final EntryId id)
         {
-            def representation = new MutableRepresentation(mock(RepresentationFactory), link.href)
+            def representation = new MutableRepresentation(mock(RepresentationFactory), "/${id.toString()}")
             return representation
         }
     }
@@ -111,9 +108,8 @@ class MultipleClientTest
     private static void populateDomain()
     {
         (1..FEED_SIZE).each { int it ->
-            def uri = "http://localhost/${it == 1 ? MARKER : it}"
-            def link = new Link(mock(RepresentationFactory), 'self', uri)
-            tracker.track(link)
+            def entry = EntryId.of(it == 1 ? MARKER : "${it}")
+            tracker.track(entry)
         }
     }
 
