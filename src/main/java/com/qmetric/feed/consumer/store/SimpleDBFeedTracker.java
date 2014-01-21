@@ -18,6 +18,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.qmetric.feed.consumer.DateTimeSource;
 import com.qmetric.feed.consumer.EntryId;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -26,7 +27,6 @@ import java.util.List;
 
 import static com.google.common.collect.FluentIterable.from;
 import static java.lang.String.format;
-import static org.joda.time.DateTime.now;
 
 public class SimpleDBFeedTracker implements FeedTracker
 {
@@ -40,6 +40,8 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private static final String FAILURES_COUNT = "failures_count";
 
+    private static final String SEEN_AT = "seen_at";
+
     private static final String MAX_FAILURES = "099";
 
     private static final String SELECT_ITEM_BY_NAME = "select * from `%s` where itemName() = '%s' limit 1";
@@ -47,6 +49,8 @@ public class SimpleDBFeedTracker implements FeedTracker
     private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select itemName() from `%s` where `" + CONSUMED_DATE_ATTR + "` is null " +
                                                               "and `" + CONSUMING_DATE_ATTR + "` is null " +
                                                               "and (`" + FAILURES_COUNT + "` is null or `" + FAILURES_COUNT + "` < '" + MAX_FAILURES + "') " +
+                                                              "and `" + SEEN_AT + "` is not null " +
+                                                              "order by `" + SEEN_AT + "` ASC " +
                                                               "limit 50";
 
     private static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
@@ -75,10 +79,18 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private final String domain;
 
+    private final DateTimeSource dateTimeSource;
+
     public SimpleDBFeedTracker(final AmazonSimpleDB simpleDBClient, final String domain)
+    {
+        this(simpleDBClient, domain, new DateTimeSource());
+    }
+
+    SimpleDBFeedTracker(final AmazonSimpleDB simpleDBClient, final String domain, final DateTimeSource dateTimeSource)
     {
         this.simpleDBClient = simpleDBClient;
         this.domain = domain;
+        this.dateTimeSource = dateTimeSource;
 
         simpleDBClient.createDomain(new CreateDomainRequest(domain));
     }
@@ -125,7 +137,7 @@ public class SimpleDBFeedTracker implements FeedTracker
         final Optional<Attribute> failuresCount = from(response.getAttributes()).firstMatch(IS_FAILURE_COUNT);
         final int currentCount = Integer.valueOf(failuresCount.or(ZERO_FAILURES).getValue());
         final int nextCount = currentCount + 1;
-        PutAttributesRequest request = putRequest(id, new ReplaceableAttribute(FAILURES_COUNT, format(ZEROPADDED_INTEGER, nextCount), true));
+        PutAttributesRequest request = putRequest(id, new ReplaceableAttribute(FAILURES_COUNT, format(ZEROPADDED_INTEGER, nextCount), true), buildTrackingAttribute());
         run(request);
         revertConsuming(id);
     }
@@ -142,8 +154,13 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     @Override public void track(final EntryId id)
     {
-        final ReplaceableAttribute seen_at = new ReplaceableAttribute().withName("seen_at").withValue(currentDate()).withReplace(false);
+        final ReplaceableAttribute seen_at = buildTrackingAttribute();
         run(putRequest(id, seen_at));
+    }
+
+    private ReplaceableAttribute buildTrackingAttribute()
+    {
+        return new ReplaceableAttribute().withName(SEEN_AT).withValue(currentDate()).withReplace(true);
     }
 
     @Override public Iterable<EntryId> getItemsToBeConsumed()
@@ -248,13 +265,13 @@ public class SimpleDBFeedTracker implements FeedTracker
         return ImmutableList.<T>builder().add(ts).build();
     }
 
-    private static ReplaceableAttribute withCurrentDate(final String name)
+    private ReplaceableAttribute withCurrentDate(final String name)
     {
         return new ReplaceableAttribute().withName(name).withValue(currentDate()).withReplace(true);
     }
 
-    private static String currentDate()
+    private String currentDate()
     {
-        return DATE_FORMATTER.print(now());
+        return DATE_FORMATTER.print(dateTimeSource.now());
     }
 }

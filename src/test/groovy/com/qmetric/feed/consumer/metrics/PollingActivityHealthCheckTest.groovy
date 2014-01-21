@@ -1,5 +1,6 @@
 package com.qmetric.feed.consumer.metrics
 
+import com.qmetric.feed.consumer.DateTimeSource
 import com.qmetric.feed.consumer.EntryId
 import com.qmetric.feed.consumer.Interval
 import org.joda.time.DateTime
@@ -12,7 +13,7 @@ import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
 class PollingActivityHealthCheckTest extends Specification {
 
-    final dateTimeSource = Mock(PollingActivityHealthCheck.DateTimeSource)
+    final dateTimeSource = Mock(DateTimeSource)
 
     def "should be unhealthy if never any polling activity"()
     {

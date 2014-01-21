@@ -2,6 +2,7 @@ package com.qmetric.feed.consumer.metrics;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Optional;
+import com.qmetric.feed.consumer.DateTimeSource;
 import com.qmetric.feed.consumer.EntryConsumerListener;
 import com.qmetric.feed.consumer.EntryId;
 import com.qmetric.feed.consumer.FeedPollingListener;
@@ -77,13 +78,5 @@ public class PollingActivityHealthCheck extends HealthCheck implements FeedPolli
     private Result healthyResult()
     {
         return healthy(String.format("Active at %s ", lastConsumed.get().toString(DATE_TIME_FORMAT)));
-    }
-
-    static class DateTimeSource
-    {
-        DateTime now()
-        {
-            return DateTime.now();
-        }
     }
 }

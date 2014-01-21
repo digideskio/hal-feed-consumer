@@ -2,7 +2,9 @@ package com.qmetric.feed.consumer.store
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.simpledb.AmazonSimpleDB
 import com.amazonaws.services.simpledb.model.*
+import com.qmetric.feed.consumer.DateTimeSource
 import com.qmetric.feed.consumer.EntryId
+import org.joda.time.DateTime
 import spock.lang.Specification
 
 import static com.google.common.collect.Iterables.size
@@ -14,6 +16,8 @@ class SimpleDBFeedTrackerTest extends Specification {
 
     private static FAILURES_COUNT = 'failures_count'
 
+    private static SEEN_AT = 'seen_at'
+
     private static CONSUMING = "consuming"
 
     final domain = anyNonEmptyString()
@@ -22,7 +26,13 @@ class SimpleDBFeedTrackerTest extends Specification {
 
     final simpleDBClient = Mock(AmazonSimpleDB)
 
-    final consumedEntryStore = new SimpleDBFeedTracker(simpleDBClient, domain)
+    final dateTimeSource = Mock(DateTimeSource.class)
+
+    final consumedEntryStore = new SimpleDBFeedTracker(simpleDBClient, domain, dateTimeSource)
+
+    def setup() {
+        dateTimeSource.now() >> new DateTime(2014, 1, 10, 12, 0, 0, 0)
+    }
 
     def "should store entry with consuming state only if not already consuming"()
     {
@@ -80,16 +90,18 @@ class SimpleDBFeedTrackerTest extends Specification {
             assert it.domainName == domain
             assert it.itemName == feedEntry.toString()
             assert it.attributeNames == [FAILURES_COUNT]
-            return new GetAttributesResult().withAttributes(initialAttributes)
+            return new GetAttributesResult().withAttributes(initialFailureCountAttribute)
         }
 
-        and: 'increment failures count'
+        and: 'increment failures count and update seen_at date'
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest it ->
             assert it.domainName == domain
             assert it.itemName == feedEntry.toString()
-            assert it.attributes.size() == 1
-            assert it.attributes.contains(expectedAttribute)
+            assert it.attributes.size() == 2
+            assert it.attributes.contains(expectedFailureCountAttribute)
+            assert it.attributes.contains(expectedSeenAtAttribute)
         }
+
         and: 'revert consuming'
         1 * simpleDBClient.deleteAttributes(_ as DeleteAttributesRequest) >> { DeleteAttributesRequest r ->
             assert r.domainName == domain
@@ -104,8 +116,9 @@ class SimpleDBFeedTrackerTest extends Specification {
         '001'         | '002'
         '002'         | '003'
 
-        expectedAttribute = new ReplaceableAttribute(FAILURES_COUNT, incremented_count, true)
-        initialAttributes = initial_count == null ? null : new Attribute(FAILURES_COUNT, initial_count)
+        expectedFailureCountAttribute = new ReplaceableAttribute(FAILURES_COUNT, incremented_count, true)
+        expectedSeenAtAttribute = new ReplaceableAttribute(SEEN_AT, "2014/01/10 12:00:00", true)
+        initialFailureCountAttribute = initial_count == null ? null : new Attribute(FAILURES_COUNT, initial_count)
     }
 
     def 'should mark consumed entry with "consumed" attribute'()
