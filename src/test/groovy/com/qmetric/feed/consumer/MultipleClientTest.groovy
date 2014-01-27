@@ -121,25 +121,25 @@ class MultipleClientTest {
 
 
     private static slowFaultyAction = new ConsumeAction() {
-        @Override void consume(final ReadableRepresentation input)
+        @Override void consume(final FeedEntry input)
         {
-            if (input.resourceLink.href.contains(MARKER))
+            if (input.content.resourceLink.href.contains(MARKER))
             {
-                println "hang-and-fail-action waiting 10 sec before failing on ${input.getResourceLink()}"
+                println "hang-and-fail-action waiting 10 sec before failing on ${input.content.getResourceLink()}"
                 SECONDS.sleep(10)
                 throw new RuntimeException()
             }
             else
             {
-                println "hang-and-fail-action consumed ${input.getResourceLink()}"
+                println "hang-and-fail-action consumed ${input.content.getResourceLink()}"
             }
         }
     }
 
     private static quickRunningAction = new ConsumeAction() {
-        @Override void consume(final ReadableRepresentation input)
+        @Override void consume(final FeedEntry input)
         {
-            println "quick-action consumed ${input.getResourceLink()}"
+            println "quick-action consumed ${input.content.getResourceLink()}"
         }
     }
 }

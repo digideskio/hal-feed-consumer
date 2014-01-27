@@ -5,7 +5,6 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.google.common.base.Optional;
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.FeedTracker;
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
 
 import java.util.Collection;
 import java.util.concurrent.Callable;
@@ -43,7 +42,7 @@ public class EntryConsumerImpl implements EntryConsumer
     }
 
     @Override
-    public void consume(TrackedEntry trackedEntry) throws Exception
+    public void consume(final TrackedEntry trackedEntry) throws Exception
     {
         markAsConsuming(trackedEntry);
 
@@ -63,7 +62,7 @@ public class EntryConsumerImpl implements EntryConsumer
     {
         try
         {
-            consumeAction.consume(fetchFeedEntry(trackedEntry.id));
+            consumeAction.consume(fetchFeedEntry(trackedEntry));
         }
         catch (final Throwable e)
         {
@@ -74,14 +73,14 @@ public class EntryConsumerImpl implements EntryConsumer
 
     private void fail(final TrackedEntry trackedEntry)
     {
-        final boolean scheduleRetry = !maxRetries.isPresent() || maxRetries.get() > trackedEntry.failureAttempts;
+        final boolean scheduleRetry = !maxRetries.isPresent() || maxRetries.get() > trackedEntry.retries;
 
         feedTracker.fail(trackedEntry, scheduleRetry);
     }
 
-    private ReadableRepresentation fetchFeedEntry(final EntryId id)
+    private FeedEntry fetchFeedEntry(final TrackedEntry trackedEntry)
     {
-        return resourceResolver.resolve(id);
+        return new FeedEntry(resourceResolver.resolve(trackedEntry.id), trackedEntry.retries);
     }
 
     private void markAsConsumed(final TrackedEntry trackedEntry) throws ExecutionException, RetryException

@@ -13,6 +13,8 @@ class EntryConsumerImplTest extends Specification {
 
     private static final int MAX_RETRIES = 10
 
+    private static final int RETRIES = 1
+
     final consumeAction = Mock(ConsumeAction)
 
     final resourceResolver = Mock(ResourceResolver)
@@ -23,7 +25,7 @@ class EntryConsumerImplTest extends Specification {
 
     final consumer = new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, [listener], Optional.of(MAX_RETRIES))
 
-    def entry = new TrackedEntry(EntryId.of(anyString()), 1)
+    def entry = new TrackedEntry(EntryId.of(anyString()), RETRIES)
 
     def resource = Mock(ReadableRepresentation)
 
@@ -35,7 +37,7 @@ class EntryConsumerImplTest extends Specification {
         then:
         1 * feedTracker.markAsConsuming(entry.id)
         1 * resourceResolver.resolve(entry.id) >> resource
-        1 * consumeAction.consume(resource)
+        1 * consumeAction.consume(new FeedEntry(resource, RETRIES))
         1 * feedTracker.markAsConsumed(entry.id)
     }
 

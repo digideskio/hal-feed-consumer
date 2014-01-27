@@ -131,7 +131,7 @@ public class SimpleDBFeedTracker implements FeedTracker
 
         if (scheduleRetry)
         {
-            final String updatedFailuresCount = String.valueOf(trackedEntry.failureAttempts + 1);
+            final String updatedFailuresCount = String.valueOf(trackedEntry.retries + 1);
             failureUpdate = putRequest(trackedEntry.id, new ReplaceableAttribute(FAILURES_COUNT, updatedFailuresCount, true), buildTrackingAttribute());
 
         }

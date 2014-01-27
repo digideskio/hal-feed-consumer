@@ -6,12 +6,12 @@ public class TrackedEntry
 {
     public final EntryId id;
 
-    public final Integer failureAttempts;
+    public final int retries;
 
-    public TrackedEntry(final EntryId id, final Integer failureAttempts)
+    public TrackedEntry(final EntryId id, final int retries)
     {
         this.id = id;
-        this.failureAttempts = failureAttempts;
+        this.retries = retries;
     }
 
     @Override public boolean equals(final Object obj)
