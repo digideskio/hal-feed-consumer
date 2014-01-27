@@ -28,12 +28,12 @@ public class FeedConsumerImpl implements FeedConsumer
     }
 
     @Override
-    public List<EntryId> consume() throws Exception
+    public List<TrackedEntry> consume() throws Exception
     {
         return consume(unconsumed());
     }
 
-    private List<EntryId> consume(final List<EntryId> entries) throws Exception
+    private List<TrackedEntry> consume(final List<TrackedEntry> entries) throws Exception
     {
         processEach(entries);
 
@@ -42,32 +42,36 @@ public class FeedConsumerImpl implements FeedConsumer
         return entries;
     }
 
-    private void processEach(final List<EntryId> entries) throws Exception
+    private void processEach(final List<TrackedEntry> entries) throws Exception
     {
-        for (final EntryId id : entries)
+        for (final TrackedEntry trackedEntry : entries)
         {
             try
             {
-                LOG.debug("Consuming entry {}", id);
-                entryConsumer.consume(id);
+                LOG.debug("Consuming entry {}", trackedEntry);
+                entryConsumer.consume(trackedEntry);
             }
             catch (AlreadyConsumingException e)
             {
-                LOG.info("Entry {} already being consumed", id, e);
+                LOG.info("Entry {} already being consumed", trackedEntry, e);
             }
             catch (Exception e)
             {
-                LOG.warn("Entry {} failed processing", id, e);
+                LOG.warn("Entry {} failed processing", trackedEntry, e);
+            }
+            catch (Throwable e)
+            {
+                LOG.error("Fatal error processing entry {}", trackedEntry, e);
             }
         }
     }
 
-    private List<EntryId> unconsumed()
+    private List<TrackedEntry> unconsumed()
     {
-        return from(feedTracker.getItemsToBeConsumed()).toList();
+        return from(feedTracker.getEntriesToBeConsumed()).toList();
     }
 
-    private void notifyAllListeners(final List<EntryId> consumedEntries)
+    private void notifyAllListeners(final List<TrackedEntry> consumedEntries)
     {
         for (final FeedPollingListener listener : listeners)
         {

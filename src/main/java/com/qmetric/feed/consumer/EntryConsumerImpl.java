@@ -2,6 +2,7 @@ package com.qmetric.feed.consumer;
 
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.RetryerBuilder;
+import com.google.common.base.Optional;
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.FeedTracker;
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
@@ -29,43 +30,53 @@ public class EntryConsumerImpl implements EntryConsumer
 
     private final Collection<EntryConsumerListener> listeners;
 
+    private final Optional<Integer> maxRetries;
+
     public EntryConsumerImpl(final FeedTracker feedTracker, final ConsumeAction consumeAction, final ResourceResolver resourceResolver,
-                             final Collection<EntryConsumerListener> listeners)
+                             final Collection<EntryConsumerListener> listeners, final Optional<Integer> maxRetries)
     {
         this.feedTracker = feedTracker;
         this.consumeAction = consumeAction;
         this.resourceResolver = resourceResolver;
         this.listeners = listeners;
+        this.maxRetries = maxRetries;
     }
 
     @Override
-    public void consume(EntryId id) throws Exception
+    public void consume(TrackedEntry trackedEntry) throws Exception
     {
-        markAsConsuming(id);
+        markAsConsuming(trackedEntry);
 
-        process(id);
+        process(trackedEntry);
 
-        markAsConsumed(id);
+        markAsConsumed(trackedEntry);
 
-        notifyAllListeners(id);
+        notifyAllListeners(trackedEntry);
     }
 
-    private void markAsConsuming(final EntryId id) throws AlreadyConsumingException
+    private void markAsConsuming(final TrackedEntry trackedEntry) throws AlreadyConsumingException
     {
-        feedTracker.markAsConsuming(id);
+        feedTracker.markAsConsuming(trackedEntry.id);
     }
 
-    private void process(final EntryId id) throws Exception
+    private void process(final TrackedEntry trackedEntry) throws Exception
     {
         try
         {
-            consumeAction.consume(fetchFeedEntry(id));
+            consumeAction.consume(fetchFeedEntry(trackedEntry.id));
         }
-        catch (final Exception e)
+        catch (final Throwable e)
         {
-            feedTracker.fail(id);
-            throw e;
+            fail(trackedEntry);
+            throw new Exception(e);
         }
+    }
+
+    private void fail(final TrackedEntry trackedEntry)
+    {
+        final boolean scheduleRetry = !maxRetries.isPresent() || maxRetries.get() > trackedEntry.failureAttempts;
+
+        feedTracker.fail(trackedEntry, scheduleRetry);
     }
 
     private ReadableRepresentation fetchFeedEntry(final EntryId id)
@@ -73,23 +84,23 @@ public class EntryConsumerImpl implements EntryConsumer
         return resourceResolver.resolve(id);
     }
 
-    private void markAsConsumed(final EntryId id) throws ExecutionException, RetryException
+    private void markAsConsumed(final TrackedEntry trackedEntry) throws ExecutionException, RetryException
     {
         RETRY_BUILDER.build().call(new Callable<Void>()
         {
             @Override public Void call() throws Exception
             {
-                feedTracker.markAsConsumed(id);
+                feedTracker.markAsConsumed(trackedEntry.id);
                 return null;
             }
         });
     }
 
-    private void notifyAllListeners(final EntryId id)
+    private void notifyAllListeners(final TrackedEntry trackingEntry)
     {
         for (final EntryConsumerListener listener : listeners)
         {
-            listener.consumed(id);
+            listener.consumed(trackingEntry.id);
         }
     }
 }

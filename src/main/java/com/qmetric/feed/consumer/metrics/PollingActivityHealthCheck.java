@@ -7,6 +7,7 @@ import com.qmetric.feed.consumer.EntryConsumerListener;
 import com.qmetric.feed.consumer.EntryId;
 import com.qmetric.feed.consumer.FeedPollingListener;
 import com.qmetric.feed.consumer.Interval;
+import com.qmetric.feed.consumer.TrackedEntry;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
@@ -43,7 +44,7 @@ public class PollingActivityHealthCheck extends HealthCheck implements FeedPolli
         return !lastConsumed.isPresent() || durationSinceLastConsumedIsLongerThanTolerableDelay() ? unhealthyResult() : healthyResult();
     }
 
-    @Override public void consumed(final List<EntryId> consumedEntries)
+    @Override public void consumed(final List<TrackedEntry> consumedEntries)
     {
         refreshLastConsumedDate();
     }

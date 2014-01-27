@@ -23,18 +23,18 @@ class FeedConsumerImplTest extends Specification {
     def "should consume provided unconsumed entries in sequence and notify the listeners"()
     {
         given:
-        EntryId entryId1 = anyEntryId()
-        EntryId entryId2 = anyEntryId()
-        EntryId entryId3 = anyEntryId()
-        List entryIds = [entryId1, entryId2, entryId3]
+        TrackedEntry entry1 = anyEntry()
+        TrackedEntry entry2 = anyEntry()
+        TrackedEntry entry3 = anyEntry()
+        List entries = [entry1, entry2, entry3]
 
         when:
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> entryIds
-        entryIds.each { EntryId l -> 1 * entryConsumer.consume(l) }
-        1 * listener.consumed(entryIds)
+        1 * feedTracker.getEntriesToBeConsumed() >> entries
+        entries.each { TrackedEntry l -> 1 * entryConsumer.consume(l) }
+        1 * listener.consumed(entries)
     }
 
     def "should notify listeners even if we have an empty list"()
@@ -43,7 +43,7 @@ class FeedConsumerImplTest extends Specification {
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> []
+        1 * feedTracker.getEntriesToBeConsumed() >> []
         0 * entryConsumer.consume(_)
         1 * listener.consumed([])
     }
@@ -54,7 +54,7 @@ class FeedConsumerImplTest extends Specification {
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> [anyEntryId(), anyEntryId()]
+        1 * feedTracker.getEntriesToBeConsumed() >> [anyEntry(), anyEntry()]
         1 * entryConsumer.consume(_) >> { throw new AlreadyConsumingException() }
         1 * entryConsumer.consume(_)
     }
@@ -65,13 +65,13 @@ class FeedConsumerImplTest extends Specification {
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> [anyEntryId(), anyEntryId()]
+        1 * feedTracker.getEntriesToBeConsumed() >> [anyEntry(), anyEntry()]
         1 * entryConsumer.consume(_) >> { throw new RuntimeException() }
         1 * entryConsumer.consume(_)
     }
 
-    private static EntryId anyEntryId()
+    private static TrackedEntry anyEntry()
     {
-        EntryId.of(anyString())
+        new TrackedEntry(EntryId.of(anyString()), 1)
     }
 }

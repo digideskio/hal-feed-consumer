@@ -1,12 +1,17 @@
 package com.qmetric.feed.consumer
+
+import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
 class EntryConsumerImplTest extends Specification {
+
+    private static final int MAX_RETRIES = 10
 
     final consumeAction = Mock(ConsumeAction)
 
@@ -16,52 +21,58 @@ class EntryConsumerImplTest extends Specification {
 
     final listener = Mock(EntryConsumerListener)
 
-    final consumer = new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, [listener])
+    final consumer = new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, [listener], Optional.of(MAX_RETRIES))
 
-    def entryId = EntryId.of(anyString())
+    def entry = new TrackedEntry(EntryId.of(anyString()), 1)
 
     def resource = Mock(ReadableRepresentation)
 
     def "should consume entry"()
     {
         when:
-        consumer.consume(entryId)
+        consumer.consume(entry)
 
         then:
-        1 * feedTracker.markAsConsuming(entryId)
-        1 * resourceResolver.resolve(entryId) >> resource
+        1 * feedTracker.markAsConsuming(entry.id)
+        1 * resourceResolver.resolve(entry.id) >> resource
         1 * consumeAction.consume(resource)
-        1 * feedTracker.markAsConsumed(entryId)
+        1 * feedTracker.markAsConsumed(entry.id)
     }
 
     def "should not consume entry if already being consumed by another consumer"()
     {
         when:
-        consumer.consume(entryId)
+        consumer.consume(entry)
 
         then:
-        1 * feedTracker.markAsConsuming(entryId) >> { throw new AlreadyConsumingException() }
+        1 * feedTracker.markAsConsuming(entry.id) >> { throw new AlreadyConsumingException() }
         0 * consumeAction._
         0 * feedTracker._
         thrown(AlreadyConsumingException)
     }
 
-    def "should mark entry as failed if error occurs whilst consuming entry (mark fail should also revert consuming)"()
+    @Unroll def "should mark entry as failed if error occurs whilst consuming entry (mark fail should also revert consuming)"()
     {
         when:
-        consumer.consume(entryId)
+        consumer.consume(new TrackedEntry(EntryId.of(anyString()), retries))
 
         then:
         1 * consumeAction.consume(_) >> { throw new Exception() }
-        1 * feedTracker.fail(_)
+        1 * feedTracker.fail(_, shouldRetry)
         0 * feedTracker.markAsConsumed(_)
         thrown(Exception)
+
+        where:
+        retries | shouldRetry
+        MAX_RETRIES - 1 | true
+        MAX_RETRIES     | false
+        MAX_RETRIES + 1 | false
     }
 
     def "should retry to set consumed state on error"()
     {
         when:
-        consumer.consume(entryId)
+        consumer.consume(entry)
 
         then:
         1 * feedTracker.markAsConsumed(_) >> { throw new Exception() }
@@ -73,9 +84,9 @@ class EntryConsumerImplTest extends Specification {
     def "should notify listeners on consuming entry"()
     {
         when:
-        consumer.consume(entryId)
+        consumer.consume(entry)
 
         then:
-        1 * listener.consumed(entryId)
+        1 * listener.consumed(entry.id)
     }
 }

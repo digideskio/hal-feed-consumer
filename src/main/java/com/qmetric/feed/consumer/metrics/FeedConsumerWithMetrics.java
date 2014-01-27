@@ -4,8 +4,8 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingWindowReservoir;
 import com.codahale.metrics.Timer;
-import com.qmetric.feed.consumer.EntryId;
 import com.qmetric.feed.consumer.FeedConsumer;
+import com.qmetric.feed.consumer.TrackedEntry;
 
 import java.util.List;
 
@@ -33,13 +33,13 @@ public class FeedConsumerWithMetrics implements FeedConsumer
         this.next = next;
     }
 
-    @Override public List<EntryId> consume() throws Exception
+    @Override public List<TrackedEntry> consume() throws Exception
     {
         final Timer.Context context = consumptionTimer.time();
 
         try
         {
-            final List<EntryId> consumed = next.consume();
+            final List<TrackedEntry> consumed = next.consume();
 
             numberOfConsumedEntries.mark(consumed.size());
 

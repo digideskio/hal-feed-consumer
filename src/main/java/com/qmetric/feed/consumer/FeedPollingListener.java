@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface FeedPollingListener
 {
-    void consumed(final List<EntryId> consumedEntries);
+    void consumed(final List<TrackedEntry> consumedEntries);
 }

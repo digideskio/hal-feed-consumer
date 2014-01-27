@@ -48,20 +48,20 @@ class AvailableFeedEntriesFinder
         this.feedEndpointFactory = feedEndpointFactory;
     }
 
-    public void findNewEntries()
+    public void trackNewEntries()
     {
         trackAll(newEntries());
     }
 
-    private void trackAll(final ImmutableList<ReadableRepresentation> newEntries)
+    private void trackAll(final List<EntryId> newEntries)
     {
-        for (ReadableRepresentation e : newEntries)
+        for (final EntryId entry : newEntries)
         {
-            feedTracker.track(idOf(e));
+            feedTracker.track(entry);
         }
     }
 
-    private ImmutableList<ReadableRepresentation> newEntries()
+    private List<EntryId> newEntries()
     {
         return from(concat(ImmutableList.copyOf(new UnconsumedPageIterator()))) //
                 .toList() //
@@ -73,7 +73,7 @@ class AvailableFeedEntriesFinder
         return EntryId.of((String) entry.getValue(ENTRY_ID));
     }
 
-    private class UnconsumedPageIterator implements Iterator<List<? extends ReadableRepresentation>>
+    private class UnconsumedPageIterator implements Iterator<List<EntryId>>
     {
         private static final String NEXT_LINK_RELATION = "next";
 
@@ -96,17 +96,23 @@ class AvailableFeedEntriesFinder
             throw new UnsupportedOperationException();
         }
 
-        @Override public List<? extends ReadableRepresentation> next()
+        @Override public List<EntryId> next()
         {
-            log.info("Reading feed-page {}", currentPageLink());
+            log.info("Reading feed-page {}", currentPage.get().getResourceLink().getHref());
 
             final List<? extends ReadableRepresentation> allFromPage = currentPageEntries();
 
             final List<? extends ReadableRepresentation> newEntries = newEntries(allFromPage);
 
-            flipPage(allFromPage, newEntries);
+            flipToNextPage(allFromPage, newEntries);
 
-            return newEntries;
+            return from(newEntries).transform(new Function<ReadableRepresentation, EntryId>()
+            {
+                @Override public EntryId apply(final ReadableRepresentation input)
+                {
+                    return idOf(input);
+                }
+            }).toList();
         }
 
         private List<? extends ReadableRepresentation> currentPageEntries()
@@ -114,21 +120,16 @@ class AvailableFeedEntriesFinder
             return currentPage.get().getResourcesByRel("entries");
         }
 
-        private void flipPage(final List<? extends ReadableRepresentation> allFromPage, final List<? extends ReadableRepresentation> unconsumedFromPage)
+        private void flipToNextPage(final List<? extends ReadableRepresentation> allFromPage, final List<? extends ReadableRepresentation> unconsumedFromPage)
         {
             log.debug("Found {} unconsumed entries out of {}", unconsumedFromPage.size(), allFromPage.size());
 
-            this.currentPage = allFromPage.size() == unconsumedFromPage.size() ? nextPage() : Optional.<ReadableRepresentation>absent();
+            this.currentPage = allFromPage.size() == unconsumedFromPage.size() ? getNextPage() : Optional.<ReadableRepresentation>absent();
 
             log.debug("Next page: {}", currentPage);
         }
 
-        private String currentPageLink()
-        {
-            return currentPage.isPresent() ? currentPage.get().getResourceLink().getHref() : "CURRENT PAGE FIELD IS ABSENT";
-        }
-
-        private Optional<ReadableRepresentation> nextPage()
+        private Optional<ReadableRepresentation> getNextPage()
         {
             return nextLink(currentPage.get()).transform(new Function<Link, ReadableRepresentation>()
             {
@@ -148,6 +149,7 @@ class AvailableFeedEntriesFinder
         {
             return from(entries).filter(new Predicate<ReadableRepresentation>()
             {
+                @Override
                 public boolean apply(final ReadableRepresentation input)
                 {
                     return hasConsumablePublishedDate(input) && isNotTracked(input);

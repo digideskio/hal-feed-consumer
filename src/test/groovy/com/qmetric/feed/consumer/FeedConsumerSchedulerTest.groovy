@@ -43,7 +43,7 @@ class FeedConsumerSchedulerTest extends Specification {
         scheduler.updateTracker()
 
         then:
-        1 * finder.findNewEntries() >> { throw new Exception() }
+        1 * finder.trackNewEntries() >> { throw new Exception() }
         notThrown(Exception)
     }
 }

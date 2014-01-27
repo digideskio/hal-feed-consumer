@@ -4,11 +4,12 @@ import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
 import com.qmetric.feed.consumer.EntryConsumer
 import com.qmetric.feed.consumer.EntryId
+import com.qmetric.feed.consumer.TrackedEntry
 import spock.lang.Specification
 
 class EntryConsumerWithMetricsTest extends Specification {
 
-    final entryId = EntryId.of("1")
+    final entry = new TrackedEntry(EntryId.of("1"), 1)
 
     final metricRegistry = Mock(MetricRegistry)
 
@@ -36,13 +37,13 @@ class EntryConsumerWithMetricsTest extends Specification {
     def "should record time taken to consume feed entry"()
     {
         when:
-        entryConsumerWithMetrics.consume(entryId)
+        entryConsumerWithMetrics.consume(entry)
 
         then:
         1 * timer.time() >> timerContext
 
         then:
-        1 * entryConsumer.consume(entryId)
+        1 * entryConsumer.consume(entry)
 
         then:
         1 * timerContext.stop()
@@ -51,10 +52,10 @@ class EntryConsumerWithMetricsTest extends Specification {
     def "should record each successful consumption"()
     {
         when:
-        entryConsumerWithMetrics.consume(entryId)
+        entryConsumerWithMetrics.consume(entry)
 
         then:
-        1 * entryConsumer.consume(entryId)
+        1 * entryConsumer.consume(entry)
 
         then:
         1 * successMeter.mark()
@@ -64,10 +65,10 @@ class EntryConsumerWithMetricsTest extends Specification {
     def "should record each unsuccessful consumption"()
     {
         given:
-        entryConsumer.consume(entryId) >> { throw new Exception() }
+        entryConsumer.consume(entry) >> { throw new Exception() }
 
         when:
-        entryConsumerWithMetrics.consume(entryId)
+        entryConsumerWithMetrics.consume(entry)
 
         then:
         1 * errorMeter.mark()

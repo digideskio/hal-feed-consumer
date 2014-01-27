@@ -26,7 +26,7 @@ class AvailableFeedEntriesFinderTest extends Specification {
         tracker.isTracked(_ as EntryId) >>> [false, false]
 
         when:
-        finder.findNewEntries()
+        finder.trackNewEntries()
 
         then:
         1 * tracker.track(EntryId.of('idOfOldestUnconsumed'))
@@ -41,7 +41,7 @@ class AvailableFeedEntriesFinderTest extends Specification {
         tracker.isTracked(_ as EntryId) >>> [false, false]
 
         when:
-        storeWithRestrictionOnEarliestDate.findNewEntries()
+        storeWithRestrictionOnEarliestDate.trackNewEntries()
 
         then:
         1 * tracker.track(EntryId.of('idOfNewestUnconsumed'))
@@ -54,7 +54,7 @@ class AvailableFeedEntriesFinderTest extends Specification {
         tracker.isTracked(_ as EntryId) >>> [false, false, false, true]
 
         when:
-        finder.findNewEntries()
+        finder.trackNewEntries()
 
         then:
         3 * tracker.track(_ as EntryId)
@@ -69,7 +69,7 @@ class AvailableFeedEntriesFinderTest extends Specification {
         tracker.isTracked(_ as EntryId) >>> [false, false, false, true]
 
         when:
-        finder.findNewEntries()
+        finder.trackNewEntries()
 
         then:
         1 * tracker.track(EntryId.of('idOfNewUnconsumed'))
@@ -87,7 +87,7 @@ class AvailableFeedEntriesFinderTest extends Specification {
         tracker.isTracked(_ as EntryId) >>> [false, false, false, false, false, true]
 
         when:
-        finder.findNewEntries()
+        finder.trackNewEntries()
 
         then:
         5 * tracker.track(_ as EntryId)
@@ -100,7 +100,7 @@ class AvailableFeedEntriesFinderTest extends Specification {
         tracker.isTracked(_ as EntryId) >> true
 
         when:
-        finder.findNewEntries()
+        finder.trackNewEntries()
 
         then:
         0 * tracker.track(_ as EntryId)

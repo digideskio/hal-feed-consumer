@@ -45,16 +45,16 @@ class FeedConsumerConfigurationTest extends Specification {
         feedConsumerConfiguration.pollingInterval == new Interval(1, TimeUnit.MINUTES)
     }
 
-    def "should accept consumed entry store"()
+    def "should accept feed tracker"()
     {
         given:
-        final consumedStore = Mock(FeedTracker)
+        final feedTracker = Mock(FeedTracker)
 
         when:
-        feedConsumerConfiguration.withConsumedStore(consumedStore)
+        feedConsumerConfiguration.withFeedTracker(feedTracker)
 
         then:
-        feedConsumerConfiguration.feedTracker == consumedStore
+        feedConsumerConfiguration.feedTracker == feedTracker
     }
 
     def "should earliest published date limit"()
@@ -67,6 +67,18 @@ class FeedConsumerConfigurationTest extends Specification {
 
         then:
         feedConsumerConfiguration.earliestEntryLimit.get().date == limit
+    }
+
+    def "should accept limit on max retries"()
+    {
+        given:
+        final maxRetries = 10
+
+        when:
+        feedConsumerConfiguration.withLimitOnNumberOfRetriesPerEntry(maxRetries)
+
+        then:
+        feedConsumerConfiguration.maxRetries == Optional.of(10)
     }
 
     def "should accept listeners"()

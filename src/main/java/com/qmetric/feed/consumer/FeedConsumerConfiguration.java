@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
@@ -49,6 +50,8 @@ public class FeedConsumerConfiguration
     private Optional<EarliestEntryLimit> earliestEntryLimit = Optional.absent();
 
     private Optional<ResourceResolver> resourceResolver = Optional.absent();
+
+    private Optional<Integer> maxRetries = Optional.absent();
 
     public FeedConsumerConfiguration fromUrl(final String feedUrl)
     {
@@ -85,15 +88,6 @@ public class FeedConsumerConfiguration
         return this;
     }
 
-    /**
-     * @deprecated Use {@code withFeedTracker} instead
-     */
-    @Deprecated
-    public FeedConsumerConfiguration withConsumedStore(final FeedTracker feedTracker)
-    {
-        return withFeedTracker(feedTracker);
-    }
-
     public FeedConsumerConfiguration withFeedTracker(final FeedTracker feedTracker)
     {
         this.feedTracker = feedTracker;
@@ -103,6 +97,14 @@ public class FeedConsumerConfiguration
     public FeedConsumerConfiguration ignoreEntriesEarlierThan(final DateTime dateTime)
     {
         earliestEntryLimit = Optional.of(new EarliestEntryLimit(dateTime));
+
+        return this;
+    }
+
+    public FeedConsumerConfiguration withLimitOnNumberOfRetriesPerEntry(final Integer maxRetries)
+    {
+        checkState(maxRetries > 0, "Max retries must be more than 0");
+        this.maxRetries = Optional.of(maxRetries);
 
         return this;
     }
@@ -172,7 +174,7 @@ public class FeedConsumerConfiguration
 
     private EntryConsumerWithMetrics entryConsumer()
     {
-        return new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners));
+        return new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries));
     }
 
     private ResourceResolver resourceResolver()

@@ -1,5 +1,6 @@
 package com.qmetric.feed.consumer
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
+import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
 import com.theoryinpractise.halbuilder.api.ReadableRepresentation
@@ -47,7 +48,7 @@ class MultipleClientTest {
         new SimpleDBUtils(client).deleteDomain(DOMAIN_NAME)
     }
 
-    @Test public void 'a consumer picks up entries _not on the last page_ which another consumer previsouly failed to process'()
+    @Test public void 'a consumer picks up entries _not on the last page_ which another consumer previously failed to process'()
     {
         def slowActionThread = runConsumerInOwnThreadWith(slowFaultyAction)
 
@@ -90,7 +91,7 @@ class MultipleClientTest {
 
     private static FeedConsumer newConsumer(ConsumeAction action)
     {
-        def entryConsumer = new EntryConsumerImpl(tracker, action, resolver, emptyList())
+        def entryConsumer = new EntryConsumerImpl(tracker, action, resolver, emptyList(), Optional.absent())
         new FeedConsumerImpl(entryConsumer, tracker, emptyList())
     }
 

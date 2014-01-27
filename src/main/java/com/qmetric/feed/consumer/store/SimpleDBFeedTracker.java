@@ -7,8 +7,6 @@ import com.amazonaws.services.simpledb.model.CreateDomainRequest;
 import com.amazonaws.services.simpledb.model.DeleteAttributesRequest;
 import com.amazonaws.services.simpledb.model.DomainMetadataRequest;
 import com.amazonaws.services.simpledb.model.DomainMetadataResult;
-import com.amazonaws.services.simpledb.model.GetAttributesRequest;
-import com.amazonaws.services.simpledb.model.GetAttributesResult;
 import com.amazonaws.services.simpledb.model.Item;
 import com.amazonaws.services.simpledb.model.PutAttributesRequest;
 import com.amazonaws.services.simpledb.model.ReplaceableAttribute;
@@ -20,6 +18,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.qmetric.feed.consumer.DateTimeSource;
 import com.qmetric.feed.consumer.EntryId;
+import com.qmetric.feed.consumer.TrackedEntry;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -32,6 +31,8 @@ public class SimpleDBFeedTracker implements FeedTracker
 {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("yyyy/MM/dd HH:mm:ss");
 
+    private static final int MAX_RESULTS_ALLOWED_BY_SDB = 2500;
+
     private static final String CONDITIONAL_CHECK_FAILED_ERROR_CODE = "ConditionalCheckFailed";
 
     private static final String CONSUMED_DATE_ATTR = "consumed";
@@ -42,28 +43,28 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private static final String SEEN_AT = "seen_at";
 
-    private static final String MAX_FAILURES = "099";
+    private static final String ABORTED = "aborted";
 
     private static final String SELECT_ITEM_BY_NAME = "select * from `%s` where itemName() = '%s' limit 1";
 
-    private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select itemName() from `%s` where `" + CONSUMED_DATE_ATTR + "` is null " +
+    private static final String SELECT_ITEMS_TO_BE_CONSUMED = "select * from `%s` where `" + CONSUMED_DATE_ATTR + "` is null " +
                                                               "and `" + CONSUMING_DATE_ATTR + "` is null " +
-                                                              "and (`" + FAILURES_COUNT + "` is null or `" + FAILURES_COUNT + "` < '" + MAX_FAILURES + "') " +
+                                                              "and `" + ABORTED + "` is null " +
                                                               "and `" + SEEN_AT + "` is not null " +
                                                               "order by `" + SEEN_AT + "` ASC " +
-                                                              "limit 50";
+                                                              "limit " + MAX_RESULTS_ALLOWED_BY_SDB;
 
     private static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
 
-    private static final Function<Item, EntryId> ITEM_TO_ENTRY_ID = new Function<Item, EntryId>()
+    private static final Function<Item, TrackedEntry> ITEM_TO_ENTRY = new Function<Item, TrackedEntry>()
     {
-        @Override public EntryId apply(final Item input)
+        @Override public TrackedEntry apply(final Item item)
         {
-            return EntryId.of(input.getName());
+            final Optional<Attribute> failuresCountAttribute = from(item.getAttributes()).firstMatch(IS_FAILURE_COUNT);
+
+            return new TrackedEntry(EntryId.of(item.getName()), failuresCountAttribute.isPresent() ? Integer.valueOf(failuresCountAttribute.get().getValue()) : 0);
         }
     };
-
-    private static final Attribute ZERO_FAILURES = new Attribute(FAILURES_COUNT, "0");
 
     private static final Predicate<Attribute> IS_FAILURE_COUNT = new Predicate<Attribute>()
     {
@@ -72,8 +73,6 @@ public class SimpleDBFeedTracker implements FeedTracker
             return FAILURES_COUNT.equals(input.getName());
         }
     };
-
-    private static final String ZEROPADDED_INTEGER = "%03d";
 
     private final AmazonSimpleDB simpleDBClient;
 
@@ -126,20 +125,24 @@ public class SimpleDBFeedTracker implements FeedTracker
         }
     }
 
-    @Override public void revertConsuming(final EntryId id)
+    @Override public void fail(final TrackedEntry trackedEntry, final boolean scheduleRetry)
     {
-        run(deleteRequest(id, attribute(CONSUMING_DATE_ATTR)));
-    }
+        final PutAttributesRequest failureUpdate;
 
-    @Override public void fail(final EntryId id)
-    {
-        final GetAttributesResult response = run(getAttributeRequest(id, FAILURES_COUNT));
-        final Optional<Attribute> failuresCount = from(response.getAttributes()).firstMatch(IS_FAILURE_COUNT);
-        final int currentCount = Integer.valueOf(failuresCount.or(ZERO_FAILURES).getValue());
-        final int nextCount = currentCount + 1;
-        PutAttributesRequest request = putRequest(id, new ReplaceableAttribute(FAILURES_COUNT, format(ZEROPADDED_INTEGER, nextCount), true), buildTrackingAttribute());
-        run(request);
-        revertConsuming(id);
+        if (scheduleRetry)
+        {
+            final String updatedFailuresCount = String.valueOf(trackedEntry.failureAttempts + 1);
+            failureUpdate = putRequest(trackedEntry.id, new ReplaceableAttribute(FAILURES_COUNT, updatedFailuresCount, true), buildTrackingAttribute());
+
+        }
+        else
+        {
+            failureUpdate = putRequest(trackedEntry.id, new ReplaceableAttribute(ABORTED, currentDate(), true));
+        }
+
+        run(failureUpdate);
+
+        revertConsuming(trackedEntry.id);
     }
 
     @Override public void markAsConsumed(final EntryId id)
@@ -163,9 +166,14 @@ public class SimpleDBFeedTracker implements FeedTracker
         return new ReplaceableAttribute().withName(SEEN_AT).withValue(currentDate()).withReplace(true);
     }
 
-    @Override public Iterable<EntryId> getItemsToBeConsumed()
+    private void revertConsuming(final EntryId id)
     {
-        return from(run(selectToBeConsumed())).transform(ITEM_TO_ENTRY_ID);
+        run(deleteRequest(id, attribute(CONSUMING_DATE_ATTR)));
+    }
+
+    @Override public Iterable<TrackedEntry> getEntriesToBeConsumed()
+    {
+        return from(run(selectToBeConsumed())).transform(ITEM_TO_ENTRY);
     }
 
     public int countConsuming()
@@ -190,13 +198,13 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private SelectRequest selectItem(final EntryId id)
     {
-        String query = format(SELECT_ITEM_BY_NAME, domain, id);
+        final String query = format(SELECT_ITEM_BY_NAME, domain, id);
         return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
     }
 
     private SelectRequest selectToBeConsumed()
     {
-        String query = format(SELECT_ITEMS_TO_BE_CONSUMED, domain);
+        final String query = format(SELECT_ITEMS_TO_BE_CONSUMED, domain);
         return new SelectRequest().withSelectExpression(query).withConsistentRead(true);
     }
 
@@ -208,11 +216,6 @@ public class SimpleDBFeedTracker implements FeedTracker
     private DomainMetadataResult getDomainMetadata()
     {
         return run(new DomainMetadataRequest(domain));
-    }
-
-    private GetAttributesRequest getAttributeRequest(final EntryId id, final String... attributes)
-    {
-        return new GetAttributesRequest(domain, id.toString()).withAttributeNames(attributes);
     }
 
     private PutAttributesRequest putRequest(final EntryId id, final ReplaceableAttribute... attributes)
@@ -243,11 +246,6 @@ public class SimpleDBFeedTracker implements FeedTracker
     private void run(final DeleteAttributesRequest request)
     {
         simpleDBClient.deleteAttributes(request);
-    }
-
-    private GetAttributesResult run(final GetAttributesRequest request)
-    {
-        return simpleDBClient.getAttributes(request);
     }
 
     private DomainMetadataResult run(final DomainMetadataRequest request)
