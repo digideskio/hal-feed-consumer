@@ -1,8 +1,6 @@
 package com.qmetric.feed.consumer;
 
-import com.theoryinpractise.halbuilder.api.Link;
-
 public interface EntryConsumerListener
 {
-    void consumed(final Link consumedEntry);
+    void consumed(final EntryId consumedEntry);
 }

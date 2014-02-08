@@ -8,13 +8,13 @@ public class FeedEndpointFactory
 {
     private final Client client;
 
-    public FeedEndpointFactory(final Client client, final ConnectioTimeout timeout)
+    public FeedEndpointFactory(final Client client, final ConnectionTimeout timeout)
     {
         this.client = client;
         initClient(timeout);
     }
 
-    private void initClient(final ConnectioTimeout timeout)
+    private void initClient(final ConnectionTimeout timeout)
     {
         client.setConnectTimeout(timeout.asMillis());
         client.setReadTimeout(timeout.asMillis());
@@ -25,13 +25,13 @@ public class FeedEndpointFactory
         return new FeedEndpoint(client.resource(url));
     }
 
-    public static class ConnectioTimeout
+    public static class ConnectionTimeout
     {
         final TimeUnit unit;
 
         final int value;
 
-        public ConnectioTimeout(final TimeUnit unit, final int value)
+        public ConnectionTimeout(final TimeUnit unit, final int value)
         {
             this.unit = unit;
             this.value = value;

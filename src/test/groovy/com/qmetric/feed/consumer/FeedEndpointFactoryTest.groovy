@@ -1,22 +1,18 @@
 package com.qmetric.feed.consumer
-
 import com.sun.jersey.api.client.Client
 import com.sun.jersey.api.client.ClientHandlerException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spark.*
-import spark.SparkStopper
-import spock.lang.Ignore
 import spock.lang.Specification
 import spock.lang.Timeout
 
 import static java.util.concurrent.TimeUnit.SECONDS
 
-class FeedEndpointFactoryTest extends Specification
-{
+class FeedEndpointFactoryTest extends Specification {
 
     private static final Logger log = LoggerFactory.getLogger(FeedEndpointFactoryTest)
-    static timeout = new FeedEndpointFactory.ConnectioTimeout(SECONDS, 1)
+    static timeout = new FeedEndpointFactory.ConnectionTimeout(SECONDS, 1)
     private static final int SERVER_PORT = 15001
     private static final String FEED_PATH = "/service-path"
 
@@ -58,16 +54,6 @@ class FeedEndpointFactoryTest extends Specification
     {
         when:
         new FeedEndpointFactory(new Client(), timeout).create("http://localhost:${SERVER_PORT}${FEED_PATH}").get()
-
-        then:
-        def exception = thrown(ClientHandlerException)
-        SocketTimeoutException.isAssignableFrom(exception.getCause().class)
-    }
-
-    @Ignore("How to trigger a connection-timeout exception?") @Timeout(value = 10, unit = SECONDS) def 'throws SocketTimeoutException (connection-timeout)'()
-    {
-        when:
-        new FeedEndpointFactory(new Client(), timeout).create("????").get()
 
         then:
         def exception = thrown(ClientHandlerException)

@@ -5,8 +5,7 @@ import spock.lang.Specification
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-class FeedConsumerSchedulerTest extends Specification
-{
+class FeedConsumerSchedulerTest extends Specification {
 
     final interval = new Interval(1, TimeUnit.MINUTES)
 
@@ -44,7 +43,7 @@ class FeedConsumerSchedulerTest extends Specification
         scheduler.updateTracker()
 
         then:
-        1 * finder.findNewEntries() >> { throw new Exception() }
+        1 * finder.trackNewEntries() >> { throw new Exception() }
         notThrown(Exception)
     }
 }

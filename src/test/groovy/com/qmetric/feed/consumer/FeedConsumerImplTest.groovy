@@ -1,22 +1,17 @@
 package com.qmetric.feed.consumer
-
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.FeedTracker
-import com.theoryinpractise.halbuilder.api.Link
-import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import spock.lang.Specification
 
-import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyInteger
+import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
-class FeedConsumerImplTest extends Specification
-{
+class FeedConsumerImplTest extends Specification {
 
     final entryConsumer = Mock(EntryConsumer)
 
     final feedTracker = Mock(FeedTracker)
 
     final listener = Mock(FeedPollingListener)
-
 
     FeedConsumerImpl consumer
 
@@ -28,18 +23,18 @@ class FeedConsumerImplTest extends Specification
     def "should consume provided unconsumed entries in sequence and notify the listeners"()
     {
         given:
-        Link link1 = anyLink()
-        Link link2 = anyLink()
-        Link link3 = anyLink()
-        List links = [link1, link2, link3]
+        TrackedEntry entry1 = anyEntry()
+        TrackedEntry entry2 = anyEntry()
+        TrackedEntry entry3 = anyEntry()
+        List entries = [entry1, entry2, entry3]
 
         when:
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> links
-        links.each { Link l -> 1 * entryConsumer.consume(l) }
-        1 * listener.consumed(links)
+        1 * feedTracker.getEntriesToBeConsumed() >> entries
+        entries.each { TrackedEntry l -> 1 * entryConsumer.consume(l) }
+        1 * listener.consumed(entries)
     }
 
     def "should notify listeners even if we have an empty list"()
@@ -48,7 +43,7 @@ class FeedConsumerImplTest extends Specification
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> []
+        1 * feedTracker.getEntriesToBeConsumed() >> []
         0 * entryConsumer.consume(_)
         1 * listener.consumed([])
     }
@@ -59,7 +54,7 @@ class FeedConsumerImplTest extends Specification
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> [anyLink(), anyLink()]
+        1 * feedTracker.getEntriesToBeConsumed() >> [anyEntry(), anyEntry()]
         1 * entryConsumer.consume(_) >> { throw new AlreadyConsumingException() }
         1 * entryConsumer.consume(_)
     }
@@ -70,13 +65,13 @@ class FeedConsumerImplTest extends Specification
         consumer.consume()
 
         then:
-        1 * feedTracker.getItemsToBeConsumed() >> [anyLink(), anyLink()]
+        1 * feedTracker.getEntriesToBeConsumed() >> [anyEntry(), anyEntry()]
         1 * entryConsumer.consume(_) >> { throw new RuntimeException() }
         1 * entryConsumer.consume(_)
     }
 
-    private Link anyLink()
+    private static TrackedEntry anyEntry()
     {
-        new Link(Mock(RepresentationFactory), 'self', "http://feed/${anyInteger()}")
+        new TrackedEntry(EntryId.of(anyString()), 1)
     }
 }

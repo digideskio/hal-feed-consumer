@@ -1,22 +1,21 @@
 package com.qmetric.feed.consumer.store;
 
-import com.theoryinpractise.halbuilder.api.Link;
+import com.qmetric.feed.consumer.EntryId;
+import com.qmetric.feed.consumer.TrackedEntry;
 
 public interface FeedTracker
 {
     void checkConnectivity() throws ConnectivityException;
 
-    void markAsConsuming(final Link link) throws AlreadyConsumingException;
+    boolean isTracked(EntryId id);
 
-    void revertConsuming(final Link link);
+    void track(EntryId id);
 
-    void fail(final Link link);
+    Iterable<TrackedEntry> getEntriesToBeConsumed();
 
-    void markAsConsumed(Link link);
+    void markAsConsuming(EntryId id) throws AlreadyConsumingException;
 
-    boolean isTracked(Link link);
+    void markAsConsumed(EntryId id);
 
-    void track(Link link);
-
-    Iterable<Link> getItemsToBeConsumed();
+    void fail(TrackedEntry trackedEntry, boolean scheduleRetry);
 }

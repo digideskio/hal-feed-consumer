@@ -6,8 +6,7 @@ import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 
 import static com.amazonaws.regions.Region.getRegion
 
-class SimpleDBClientFactory
-{
+class SimpleDBClientFactory {
 
     private final String accessKey
     private final String secretKey

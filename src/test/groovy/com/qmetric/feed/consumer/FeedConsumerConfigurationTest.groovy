@@ -3,6 +3,7 @@ package com.qmetric.feed.consumer
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry
+import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.FeedTracker
 import org.joda.time.DateTime
 import spock.lang.Specification
@@ -10,8 +11,7 @@ import spock.lang.Specification
 import java.util.concurrent.TimeUnit
 
 @SuppressWarnings("GroovyAccessibility")
-class FeedConsumerConfigurationTest extends Specification
-{
+class FeedConsumerConfigurationTest extends Specification {
 
     final feedConsumerConfiguration = new FeedConsumerConfiguration()
 
@@ -45,16 +45,16 @@ class FeedConsumerConfigurationTest extends Specification
         feedConsumerConfiguration.pollingInterval == new Interval(1, TimeUnit.MINUTES)
     }
 
-    def "should accept consumed entry store"()
+    def "should accept feed tracker"()
     {
         given:
-        final consumedStore = Mock(FeedTracker)
+        final feedTracker = Mock(FeedTracker)
 
         when:
-        feedConsumerConfiguration.withConsumedStore(consumedStore)
+        feedConsumerConfiguration.withFeedTracker(feedTracker)
 
         then:
-        feedConsumerConfiguration.feedTracker == consumedStore
+        feedConsumerConfiguration.feedTracker == feedTracker
     }
 
     def "should earliest published date limit"()
@@ -67,6 +67,18 @@ class FeedConsumerConfigurationTest extends Specification
 
         then:
         feedConsumerConfiguration.earliestEntryLimit.get().date == limit
+    }
+
+    def "should accept limit on max retries"()
+    {
+        given:
+        final maxRetries = 10
+
+        when:
+        feedConsumerConfiguration.withLimitOnNumberOfRetriesPerEntry(maxRetries)
+
+        then:
+        feedConsumerConfiguration.maxRetries == Optional.of(10)
     }
 
     def "should accept listeners"()
@@ -137,6 +149,6 @@ class FeedConsumerConfigurationTest extends Specification
         feedConsumerConfiguration.withResourceResolver(resourceResolver)
 
         then:
-        feedConsumerConfiguration.resourceResolver == resourceResolver
+        feedConsumerConfiguration.resourceResolver == Optional.of(resourceResolver)
     }
 }

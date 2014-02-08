@@ -22,8 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat
 import static org.mockito.Matchers.any
 import static org.mockito.Mockito.*
 
-class IntegrationTest
-{
+class IntegrationTest {
     private static final FEED_SIZE = 9
     private static final PAGE_SIZE = 3
     private static final FEED_SERVER_PORT = 15000

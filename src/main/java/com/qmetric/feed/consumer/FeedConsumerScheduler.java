@@ -46,9 +46,7 @@ public class FeedConsumerScheduler
             @Override
             public void run()
             {
-                updateTracker();
-                consume();
-                invocationCounter.getAndIncrement();
+                pollFeed();
             }
         }, 0, interval.time, interval.unit);
         shutdownProcedure.registerShutdownHook();
@@ -64,13 +62,27 @@ public class FeedConsumerScheduler
         return invocationCounter.get();
     }
 
+    private void pollFeed()
+    {
+        try
+        {
+            updateTracker();
+            consume();
+            invocationCounter.getAndIncrement();
+        }
+        catch (final Throwable e)
+        {
+            LOG.error("poll-feed exception", e);
+        }
+    }
+
     private void updateTracker()
     {
         try
         {
             LOG.info("Running entry-finder");
 
-            feedEntriesFinder.findNewEntries();
+            feedEntriesFinder.trackNewEntries();
 
             LOG.info("entry-finder returned normally");
         }

@@ -1,20 +1,19 @@
 package com.qmetric.feed.consumer.metrics
-
 import com.codahale.metrics.Meter
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
 import com.qmetric.feed.consumer.EntryConsumer
-import com.theoryinpractise.halbuilder.api.Link
+import com.qmetric.feed.consumer.EntryId
+import com.qmetric.feed.consumer.TrackedEntry
 import spock.lang.Specification
 
-class EntryConsumerWithMetricsTest extends Specification
-{
+class EntryConsumerWithMetricsTest extends Specification {
+
+    final entry = new TrackedEntry(EntryId.of("1"), 1)
 
     final metricRegistry = Mock(MetricRegistry)
 
     final entryConsumer = Mock(EntryConsumer)
-
-    final link = Mock(Link)
 
     final timer = Mock(Timer)
 
@@ -38,13 +37,13 @@ class EntryConsumerWithMetricsTest extends Specification
     def "should record time taken to consume feed entry"()
     {
         when:
-        entryConsumerWithMetrics.consume(link)
+        entryConsumerWithMetrics.consume(entry)
 
         then:
         1 * timer.time() >> timerContext
 
         then:
-        1 * entryConsumer.consume(link)
+        1 * entryConsumer.consume(entry)
 
         then:
         1 * timerContext.stop()
@@ -53,10 +52,10 @@ class EntryConsumerWithMetricsTest extends Specification
     def "should record each successful consumption"()
     {
         when:
-        entryConsumerWithMetrics.consume(link)
+        entryConsumerWithMetrics.consume(entry)
 
         then:
-        1 * entryConsumer.consume(link)
+        1 * entryConsumer.consume(entry)
 
         then:
         1 * successMeter.mark()
@@ -66,10 +65,10 @@ class EntryConsumerWithMetricsTest extends Specification
     def "should record each unsuccessful consumption"()
     {
         given:
-        entryConsumer.consume(link) >> { throw new Exception() }
+        entryConsumer.consume(entry) >> { throw new Exception() }
 
         when:
-        entryConsumerWithMetrics.consume(link)
+        entryConsumerWithMetrics.consume(entry)
 
         then:
         1 * errorMeter.mark()

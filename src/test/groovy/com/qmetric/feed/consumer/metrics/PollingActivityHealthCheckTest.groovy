@@ -1,8 +1,8 @@
 package com.qmetric.feed.consumer.metrics
 
+import com.qmetric.feed.consumer.DateTimeSource
+import com.qmetric.feed.consumer.EntryId
 import com.qmetric.feed.consumer.Interval
-import com.theoryinpractise.halbuilder.api.Link
-import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import org.joda.time.DateTime
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -11,10 +11,9 @@ import static java.util.concurrent.TimeUnit.MINUTES
 import static java.util.concurrent.TimeUnit.SECONDS
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
-class PollingActivityHealthCheckTest extends Specification
-{
+class PollingActivityHealthCheckTest extends Specification {
 
-    final dateTimeSource = Mock(PollingActivityHealthCheck.DateTimeSource)
+    final dateTimeSource = Mock(DateTimeSource)
 
     def "should be unhealthy if never any polling activity"()
     {
@@ -35,7 +34,7 @@ class PollingActivityHealthCheckTest extends Specification
         dateTimeSource.now() >>> [lastConsumedDate, currentDate]
 
         when:
-        healthCheck.consumed(anyLink())
+        healthCheck.consumed(EntryId.of(anyString()))
 
         then:
         healthCheck.check().isHealthy() == expectedHealthyResult
@@ -49,8 +48,5 @@ class PollingActivityHealthCheckTest extends Specification
         new Interval(1, SECONDS) | new DateTime(2013, 7, 19, 0, 0, 0, 0) | new DateTime(2013, 7, 19, 0, 0, 2, 0)   | false
     }
 
-    private Link anyLink()
-    {
-        new Link(Mock(RepresentationFactory), anyString(), anyString())
-    }
+
 }
