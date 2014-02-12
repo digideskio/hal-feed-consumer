@@ -33,8 +33,9 @@ final FeedConsumerConfiguration feedConsumerConfiguration = new FeedConsumerConf
                 .fromUrl("http://your-feed-endpoint")
                 .withFeedTracker(feedTracker)
                 .consumeEachEntryWith(new ConsumeAction() {
-                                          @Override public void consume(final FeedEntry feedEntry) {
+                                          @Override public Response consume(final FeedEntry feedEntry) {
                                               System.out.println("write your code here to consume the next feed entry...");
+                                              return Result.successful();
                                       }})
                 .pollForNewEntriesEvery(5, MINUTES);
 

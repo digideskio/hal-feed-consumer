@@ -37,8 +37,25 @@ class EntryConsumerImplTest extends Specification {
         then:
         1 * feedTracker.markAsConsuming(entry.id)
         1 * resourceResolver.resolve(entry.id) >> resource
-        1 * consumeAction.consume(new FeedEntry(resource, RETRIES))
+        1 * consumeAction.consume(new FeedEntry(resource, RETRIES)) >> Result.successful()
         1 * feedTracker.markAsConsumed(entry.id)
+    }
+
+    def "should use failure result from consumption to determine whether to retry"()
+    {
+        given:
+        consumeAction.consume(_) >> result
+
+        when:
+        consumer.consume(entry)
+
+        then:
+        1 * feedTracker.fail(_, shouldRetry)
+
+        where:
+        result | shouldRetry
+        Result.retryUnsuccessful() | true
+        Result.abortUnsuccessful() | false
     }
 
     def "should not consume entry if already being consumed by another consumer"()
@@ -73,6 +90,9 @@ class EntryConsumerImplTest extends Specification {
 
     def "should retry to set consumed state on error"()
     {
+        given:
+        consumeAction.consume(_) >> Result.successful()
+
         when:
         consumer.consume(entry)
 
@@ -85,6 +105,9 @@ class EntryConsumerImplTest extends Specification {
 
     def "should notify listeners on consuming entry"()
     {
+        given:
+        consumeAction.consume(_) >> Result.retryUnsuccessful()
+
         when:
         consumer.consume(entry)
 

@@ -121,7 +121,7 @@ class MultipleClientTest {
 
 
     private static slowFaultyAction = new ConsumeAction() {
-        @Override void consume(final FeedEntry input)
+        @Override Result consume(final FeedEntry input)
         {
             if (input.content.resourceLink.href.contains(MARKER))
             {
@@ -133,13 +133,16 @@ class MultipleClientTest {
             {
                 println "hang-and-fail-action consumed ${input.content.getResourceLink()}"
             }
+
+            Result.successful()
         }
     }
 
     private static quickRunningAction = new ConsumeAction() {
-        @Override void consume(final FeedEntry input)
+        @Override Result consume(final FeedEntry input)
         {
             println "quick-action consumed ${input.content.getResourceLink()}"
+            Result.successful()
         }
     }
 }

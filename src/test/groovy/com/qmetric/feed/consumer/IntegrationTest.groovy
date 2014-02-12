@@ -60,6 +60,7 @@ class IntegrationTest {
 
     @Test(timeout = 60000L) public void 'all entries provided by the mock feed are stored'()
     {
+        when(action.consume(any(FeedEntry.class))).thenReturn(Result.successful())
         // Workaround: @Before and @After methods were not run at the right time on Travis
         simpleDBUtils.createDomainAndWait(DOMAIN_NAME)
 

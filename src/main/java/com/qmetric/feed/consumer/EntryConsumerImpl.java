@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 
 import static com.github.rholder.retry.StopStrategies.stopAfterAttempt;
 import static com.github.rholder.retry.WaitStrategies.fixedWait;
+import static com.qmetric.feed.consumer.Result.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class EntryConsumerImpl implements EntryConsumer
@@ -62,7 +63,11 @@ public class EntryConsumerImpl implements EntryConsumer
     {
         try
         {
-            consumeAction.consume(fetchFeedEntry(trackedEntry));
+            final Result result = consumeAction.consume(fetchFeedEntry(trackedEntry));
+            if (result.failure())
+            {
+                feedTracker.fail(trackedEntry, result.state == State.RETRY_UNSUCCESSFUL);
+            }
         }
         catch (final Throwable e)
         {
