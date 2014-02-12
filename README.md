@@ -33,7 +33,7 @@ final FeedConsumerConfiguration feedConsumerConfiguration = new FeedConsumerConf
                 .fromUrl("http://your-feed-endpoint")
                 .withFeedTracker(feedTracker)
                 .consumeEachEntryWith(new ConsumeAction() {
-                                          @Override public Response consume(final FeedEntry feedEntry) {
+                                          @Override public Result consume(final FeedEntry feedEntry) {
                                               System.out.println("write your code here to consume the next feed entry...");
                                               return Result.successful();
                                       }})
