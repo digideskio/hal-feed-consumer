@@ -51,6 +51,8 @@ class EntryConsumerImplTest extends Specification {
 
         then:
         1 * feedTracker.fail(_, shouldRetry)
+        0 * feedTracker.markAsConsumed(entry.id)
+        0 * listener.consumed(entry.id)
 
         where:
         result | shouldRetry
@@ -106,7 +108,7 @@ class EntryConsumerImplTest extends Specification {
     def "should notify listeners on consuming entry"()
     {
         given:
-        consumeAction.consume(_) >> Result.retryUnsuccessful()
+        consumeAction.consume(_) >> Result.successful()
 
         when:
         consumer.consume(entry)

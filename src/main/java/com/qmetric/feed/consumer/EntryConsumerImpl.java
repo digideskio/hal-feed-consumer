@@ -47,11 +47,14 @@ public class EntryConsumerImpl implements EntryConsumer
     {
         markAsConsuming(trackedEntry);
 
-        process(trackedEntry);
+        final boolean success = process(trackedEntry);
 
-        markAsConsumed(trackedEntry);
+        if (success)
+        {
+            markAsConsumed(trackedEntry);
 
-        notifyAllListeners(trackedEntry);
+            notifyAllListeners(trackedEntry);
+        }
     }
 
     private void markAsConsuming(final TrackedEntry trackedEntry) throws AlreadyConsumingException
@@ -59,7 +62,7 @@ public class EntryConsumerImpl implements EntryConsumer
         feedTracker.markAsConsuming(trackedEntry.id);
     }
 
-    private void process(final TrackedEntry trackedEntry) throws Exception
+    private boolean process(final TrackedEntry trackedEntry) throws Exception
     {
         try
         {
@@ -67,6 +70,11 @@ public class EntryConsumerImpl implements EntryConsumer
             if (result.failure())
             {
                 feedTracker.fail(trackedEntry, result.state == State.RETRY_UNSUCCESSFUL);
+                return false;
+            }
+            else
+            {
+                return true;
             }
         }
         catch (final Throwable e)
