@@ -17,7 +17,7 @@ Usage
 -----
 
 First, configure a data store used by the consumer to track which feed entries have already been consumed.
-An [Amazon SimpleDB](http://aws.amazon.com/simpledb/) based implementation is supplied as part of this library:
+An [Amazon SimpleDB](http://aws.amazon.com/simpledb/) based implementation is supplied as part of this library (see below for alternative implementations including for Mysql):
 
 ```java
 final AmazonSimpleDB simpleDBClient = new AmazonSimpleDBClient(new BasicAWSCredentials("access key", "secret key"));
@@ -73,3 +73,10 @@ Competing consumer pattern
 Supports the competing consumer pattern. Multiple consumers can read and process entries safely from the same feed.
 
 Note: In order to allow concurrency between multiple consumers, feed entries may be processed in an order differing from their publish date.
+
+
+Feed tracker implementations
+------------------------------
+
+* Built in to this library Amazon SimpleDB
+* Mysql https://github.com/qmetric/hal-feed-consumer-mysql
