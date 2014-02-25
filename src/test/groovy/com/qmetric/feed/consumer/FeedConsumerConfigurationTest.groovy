@@ -1,10 +1,10 @@
 package com.qmetric.feed.consumer
-
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry
 import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.FeedTracker
+import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
 import org.joda.time.DateTime
 import spock.lang.Specification
 
@@ -43,6 +43,15 @@ class FeedConsumerConfigurationTest extends Specification {
 
         then:
         feedConsumerConfiguration.pollingInterval == new Interval(1, TimeUnit.MINUTES)
+    }
+
+    def "should accept credentials for authenticating with feed server"()
+    {
+        when:
+        feedConsumerConfiguration.withAuthenticationCredentials(new FeedConsumerConfiguration.Credentials("user", "password".bytes))
+
+        then:
+        feedConsumerConfiguration.feedClient.getHeadHandler() instanceof HTTPBasicAuthFilter
     }
 
     def "should accept feed tracker"()

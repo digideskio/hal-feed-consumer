@@ -11,6 +11,7 @@ import com.qmetric.feed.consumer.metrics.FeedConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.PollingActivityHealthCheck;
 import com.qmetric.feed.consumer.store.FeedTracker;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
 import org.joda.time.DateTime;
 
@@ -109,6 +110,13 @@ public class FeedConsumerConfiguration
         return this;
     }
 
+    public FeedConsumerConfiguration withAuthenticationCredentials(final Credentials credentials)
+    {
+        feedClient.addFilter(new HTTPBasicAuthFilter(credentials.username, credentials.password));
+
+        return this;
+    }
+
     public FeedConsumerConfiguration withListeners(final EntryConsumerListener... listeners)
     {
         entryConsumerListeners.addAll(asList(listeners));
@@ -202,6 +210,19 @@ public class FeedConsumerConfiguration
             healthCheckRegistry.register("Feed polling activity", pollingActivityHealthCheck.get());
             feedPollingListeners.add(pollingActivityHealthCheck.get());
             entryConsumerListeners.add(pollingActivityHealthCheck.get());
+        }
+    }
+
+    public static class Credentials
+    {
+        public final String username;
+
+        public final byte[] password;
+
+        public Credentials(final String username, final byte[] password)
+        {
+            this.username = username;
+            this.password = password;
         }
     }
 }
