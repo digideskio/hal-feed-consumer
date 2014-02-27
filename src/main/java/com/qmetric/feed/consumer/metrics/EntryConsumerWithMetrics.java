@@ -19,11 +19,11 @@ public class EntryConsumerWithMetrics implements EntryConsumer
 
     private final EntryConsumer next;
 
-    public EntryConsumerWithMetrics(final MetricRegistry metricRegistry, final EntryConsumer next)
+    public EntryConsumerWithMetrics(final String baseMetricName, final MetricRegistry metricRegistry, final EntryConsumer next)
     {
-        timer = metricRegistry.register("entryConsumption.timeTaken", new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
-        errorMeter = metricRegistry.meter("entryConsumption.errors");
-        successMeter = metricRegistry.meter("entryConsumption.success");
+        timer = metricRegistry.register(String.format("%s: entryConsumption.timeTaken", baseMetricName), new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
+        errorMeter = metricRegistry.meter(String.format("%s: entryConsumption.errors", baseMetricName));
+        successMeter = metricRegistry.meter(String.format("%s: entryConsumption.success", baseMetricName));
 
         this.next = next;
     }

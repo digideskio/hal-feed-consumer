@@ -23,12 +23,12 @@ public class FeedConsumerWithMetrics implements FeedConsumer
 
     private final FeedConsumer next;
 
-    public FeedConsumerWithMetrics(final MetricRegistry metricRegistry, final FeedConsumer next)
+    public FeedConsumerWithMetrics(final String baseMetricName, final MetricRegistry metricRegistry, final FeedConsumer next)
     {
-        consumptionTimer = metricRegistry.register("feedPolling.timeTaken", new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
-        consumptionErrors = metricRegistry.meter("feedPolling.errors");
-        consumptionSuccess = metricRegistry.meter("feedPolling.success");
-        numberOfConsumedEntries = metricRegistry.meter("feedPolling.consumedEntries");
+        consumptionTimer = metricRegistry.register(String.format("%s: feedPolling.timeTaken", baseMetricName), new Timer(new SlidingWindowReservoir(MAX_SAMPLES)));
+        consumptionErrors = metricRegistry.meter(String.format("%s: feedPolling.errors", baseMetricName));
+        consumptionSuccess = metricRegistry.meter(String.format("%s: feedPolling.success", baseMetricName));
+        numberOfConsumedEntries = metricRegistry.meter(String.format("%s: feedPolling.consumedEntries", baseMetricName));
 
         this.next = next;
     }

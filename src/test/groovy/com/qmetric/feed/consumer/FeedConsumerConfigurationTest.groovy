@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
 @SuppressWarnings("GroovyAccessibility")
 class FeedConsumerConfigurationTest extends Specification {
 
-    final feedConsumerConfiguration = new FeedConsumerConfiguration()
+    final feedConsumerConfiguration = new FeedConsumerConfiguration("name")
 
     def "should accept feed url"()
     {

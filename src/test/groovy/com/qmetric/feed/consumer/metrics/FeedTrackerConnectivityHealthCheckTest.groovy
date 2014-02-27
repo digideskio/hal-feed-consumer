@@ -4,13 +4,13 @@ import com.qmetric.feed.consumer.store.ConnectivityException
 import com.qmetric.feed.consumer.store.FeedTracker
 import spock.lang.Specification
 
-class ConsumedStoreConnectivityHealthCheckTest extends Specification {
+class FeedTrackerConnectivityHealthCheckTest extends Specification {
 
-    final consumedStore = Mock(FeedTracker)
+    final feedTracker = Mock(FeedTracker)
 
-    final simpleDBHealthCheck = new ConsumedStoreConnectivityHealthCheck(consumedStore)
+    final simpleDBHealthCheck = new FeedTrackerConnectivityHealthCheck(feedTracker)
 
-    def "should know when consumed store connectivity is healthy"()
+    def "should know when feed tracker store connectivity is healthy"()
     {
         when:
         final result = simpleDBHealthCheck.check()
@@ -19,10 +19,10 @@ class ConsumedStoreConnectivityHealthCheckTest extends Specification {
         result.isHealthy()
     }
 
-    def "should know when consumed store connectivity is unhealthy"()
+    def "should know when feed tracker store connectivity is unhealthy"()
     {
         given:
-        consumedStore.checkConnectivity() >> { throw new ConnectivityException(new Exception()) }
+        feedTracker.checkConnectivity() >> { throw new ConnectivityException(new Exception()) }
 
         when:
         final result = simpleDBHealthCheck.check()

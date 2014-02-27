@@ -9,6 +9,8 @@ import spock.lang.Specification
 
 class FeedConsumerWithMetricsTest extends Specification {
 
+    final baseName = "base"
+
     final metricRegistry = Mock(MetricRegistry)
 
     final consumer = Mock(FeedConsumer)
@@ -27,11 +29,11 @@ class FeedConsumerWithMetricsTest extends Specification {
 
     def setup()
     {
-        metricRegistry.register("feedPolling.timeTaken", _ as Timer) >> timer
-        metricRegistry.meter("feedPolling.errors") >> errorMeter
-        metricRegistry.meter("feedPolling.success") >> successMeter
-        metricRegistry.meter("feedPolling.consumedEntries") >> numberConsumedMeter
-        policyConsumerWithMetrics = new FeedConsumerWithMetrics(metricRegistry, consumer)
+        metricRegistry.register("$baseName: feedPolling.timeTaken", _ as Timer) >> timer
+        metricRegistry.meter("$baseName: feedPolling.errors") >> errorMeter
+        metricRegistry.meter("$baseName: feedPolling.success") >> successMeter
+        metricRegistry.meter("$baseName: feedPolling.consumedEntries") >> numberConsumedMeter
+        policyConsumerWithMetrics = new FeedConsumerWithMetrics(baseName, metricRegistry, consumer)
         timer.time() >> timerContext
     }
 

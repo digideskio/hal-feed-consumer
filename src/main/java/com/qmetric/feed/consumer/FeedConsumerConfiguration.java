@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.base.Optional;
-import com.qmetric.feed.consumer.metrics.ConsumedStoreConnectivityHealthCheck;
+import com.qmetric.feed.consumer.metrics.FeedTrackerConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.EntryConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.FeedConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.FeedConsumerWithMetrics;
@@ -19,10 +19,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class FeedConsumerConfiguration
 {
@@ -33,6 +35,8 @@ public class FeedConsumerConfiguration
     private final Client feedClient = new Client();
 
     private final FeedEndpointFactory feedEndpointFactory = new FeedEndpointFactory(feedClient, new FeedEndpointFactory.ConnectionTimeout(MINUTES, 1));
+
+    private final String name;
 
     private HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
 
@@ -53,6 +57,11 @@ public class FeedConsumerConfiguration
     private Optional<ResourceResolver> resourceResolver = Optional.absent();
 
     private Optional<Integer> maxRetries = Optional.absent();
+
+    public FeedConsumerConfiguration(final String name)
+    {
+        this.name = name;
+    }
 
     public FeedConsumerConfiguration fromUrl(final String feedUrl)
     {
@@ -177,12 +186,12 @@ public class FeedConsumerConfiguration
     private FeedConsumer feedConsumer()
     {
         final FeedConsumer consumer = new FeedConsumerImpl(entryConsumer(), feedTracker, feedPollingListeners);
-        return new FeedConsumerWithMetrics(metricRegistry, consumer);
+        return new FeedConsumerWithMetrics(name, metricRegistry, consumer);
     }
 
     private EntryConsumerWithMetrics entryConsumer()
     {
-        return new EntryConsumerWithMetrics(metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries));
+        return new EntryConsumerWithMetrics(name, metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries));
     }
 
     private ResourceResolver resourceResolver()
@@ -192,22 +201,23 @@ public class FeedConsumerConfiguration
 
     private void validateConfiguration()
     {
+        checkArgument(isNotBlank(name), "Missing feed consumer name");
         checkNotNull(feedUrl, "Missing feed url");
         checkNotNull(pollingInterval, "Missing polling interval");
         checkNotNull(consumeAction, "Missing entry consumer action");
-        checkNotNull(feedTracker, "Missing consumed store");
-        checkNotNull(resourceResolver(), "Missing resrouce resolver");
+        checkNotNull(feedTracker, "Missing feed tracker");
+        checkNotNull(resourceResolver(), "Missing resource resolver");
     }
 
     private void configureHealthChecks()
     {
-        healthCheckRegistry.register("Feed connectivity", new FeedConnectivityHealthCheck(feedUrl, feedClient));
+        healthCheckRegistry.register(String.format("%s: Feed connectivity", name), new FeedConnectivityHealthCheck(feedUrl, feedClient));
 
-        healthCheckRegistry.register("Consumed store connectivity", new ConsumedStoreConnectivityHealthCheck(feedTracker));
+        healthCheckRegistry.register(String.format("%s: Feed tracker store connectivity", name), new FeedTrackerConnectivityHealthCheck(feedTracker));
 
         if (pollingActivityHealthCheck.isPresent())
         {
-            healthCheckRegistry.register("Feed polling activity", pollingActivityHealthCheck.get());
+            healthCheckRegistry.register(String.format("%s: Feed polling activity", name), pollingActivityHealthCheck.get());
             feedPollingListeners.add(pollingActivityHealthCheck.get());
             entryConsumerListeners.add(pollingActivityHealthCheck.get());
         }

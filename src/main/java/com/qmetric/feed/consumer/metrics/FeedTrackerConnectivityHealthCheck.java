@@ -6,11 +6,11 @@ import com.qmetric.feed.consumer.store.FeedTracker;
 import static com.codahale.metrics.health.HealthCheck.Result.healthy;
 import static com.codahale.metrics.health.HealthCheck.Result.unhealthy;
 
-public class ConsumedStoreConnectivityHealthCheck extends HealthCheck
+public class FeedTrackerConnectivityHealthCheck extends HealthCheck
 {
     private final FeedTracker feedTracker;
 
-    public ConsumedStoreConnectivityHealthCheck(final FeedTracker feedTracker)
+    public FeedTrackerConnectivityHealthCheck(final FeedTracker feedTracker)
     {
         this.feedTracker = feedTracker;
     }
@@ -21,7 +21,7 @@ public class ConsumedStoreConnectivityHealthCheck extends HealthCheck
         {
             feedTracker.checkConnectivity();
 
-            return healthy("Consumed store connectivity is healthy");
+            return healthy("Feed tracker store connectivity is healthy");
         }
         catch (final Exception exception)
         {

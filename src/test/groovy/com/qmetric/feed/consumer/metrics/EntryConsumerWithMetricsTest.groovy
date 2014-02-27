@@ -9,6 +9,8 @@ import spock.lang.Specification
 
 class EntryConsumerWithMetricsTest extends Specification {
 
+    final baseName = "base"
+
     final entry = new TrackedEntry(EntryId.of("1"), 1)
 
     final metricRegistry = Mock(MetricRegistry)
@@ -27,10 +29,10 @@ class EntryConsumerWithMetricsTest extends Specification {
 
     def setup()
     {
-        metricRegistry.register("entryConsumption.timeTaken", _ as Timer) >> timer
-        metricRegistry.meter("entryConsumption.errors") >> errorMeter
-        metricRegistry.meter("entryConsumption.success") >> successMeter
-        entryConsumerWithMetrics = new EntryConsumerWithMetrics(metricRegistry, entryConsumer)
+        metricRegistry.register("$baseName: entryConsumption.timeTaken", _ as Timer) >> timer
+        metricRegistry.meter("$baseName: entryConsumption.errors") >> errorMeter
+        metricRegistry.meter("$baseName: entryConsumption.success") >> successMeter
+        entryConsumerWithMetrics = new EntryConsumerWithMetrics(baseName, metricRegistry, entryConsumer)
         timer.time() >> timerContext
     }
 

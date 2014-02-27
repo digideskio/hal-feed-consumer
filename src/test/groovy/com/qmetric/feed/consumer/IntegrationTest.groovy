@@ -44,7 +44,7 @@ class IntegrationTest {
         simpleDBClient = new SimpleDBClientFactory(accessKey, secretKey).simpleDBClient()
         simpleDBUtils = new SimpleDBUtils(simpleDBClient)
         tracker = new SimpleDBFeedTracker(simpleDBClient, DOMAIN_NAME)
-        consumer = new FeedConsumerConfiguration()
+        consumer = new FeedConsumerConfiguration("test-feed")
                 .consumeEachEntryWith(action)
                 .withFeedTracker(tracker)
                 .pollForNewEntriesEvery(30, SECONDS)

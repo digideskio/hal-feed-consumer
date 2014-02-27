@@ -29,7 +29,7 @@ final FeedTracker feedTracker = new SimpleDBFeedTracker(simpleDBClient, "your-sd
 Then, build and start a feed consumer:
 
 ```java
-final FeedConsumerConfiguration feedConsumerConfiguration = new FeedConsumerConfiguration()
+final FeedConsumerConfiguration feedConsumerConfiguration = new FeedConsumerConfiguration("test-feed")
                 .fromUrl("http://your-feed-endpoint")
                 .withFeedTracker(feedTracker)
                 .consumeEachEntryWith(new ConsumeAction() {
