@@ -66,6 +66,22 @@ final HealthCheckRegistry healthCheckRegistry = feedConsumerConfiguration.getHea
 final MetricRegistry metricRegistry = feedConsumerConfiguration.getMetricRegistry();
 ```
 
+Pre-configured health check tests:
+
+  * "feed-name: Feed connectivity" - Health of connection to feed server
+  * "feed-name: Feed tracker store connectivity" - Health of connection to feed tracking store
+
+Pre-configured metrics:
+
+  * "feed-name: feedPolling.timeTaken" - Timer metric measuring the length of time taken per poll
+  * "feed-name: feedPolling.consumedEntries" - Meter metric showing count/ rate of consumed entries per poll
+  * "feed-name: feedPolling.success" - Meter metric showing count and rate of successful polls
+  * "feed-name: feedPolling.errors" - Meter metric showing count and rate of unsuccessful polls
+
+  * "feed-name: entryConsumption.timeTaken" - Timer metric measuring the length of time taken to consume each entry
+  * "feed-name: entryConsumption.success" - Meter metric showing count and rate of successfully consumed entries
+  * "feed-name: entryConsumption.errors" - Meter metric showing count and rate of unsuccessfully consumed entries
+
 
 Competing consumer pattern
 --------------------------

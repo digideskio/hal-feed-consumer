@@ -1,5 +1,8 @@
 package com.qmetric.feed.consumer;
 
+import static org.apache.commons.lang3.builder.EqualsBuilder.reflectionEquals;
+import static org.apache.commons.lang3.builder.HashCodeBuilder.reflectionHashCode;
+
 /**
  * Success/ failure result of consuming a feed entry.
  */
@@ -54,5 +57,20 @@ public class Result
     public boolean failure()
     {
         return state != State.SUCCESSFUL;
+    }
+
+    @Override public boolean equals(final Object obj)
+    {
+        return reflectionEquals(this, obj);
+    }
+
+    @Override public int hashCode()
+    {
+        return reflectionHashCode(this);
+    }
+
+    @Override public String toString()
+    {
+        return state.name();
     }
 }

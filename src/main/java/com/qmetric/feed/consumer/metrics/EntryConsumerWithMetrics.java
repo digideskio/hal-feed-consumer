@@ -28,15 +28,17 @@ public class EntryConsumerWithMetrics implements EntryConsumer
         this.next = next;
     }
 
-    @Override public void consume(final TrackedEntry trackedEntry) throws Exception
+    @Override public boolean consume(final TrackedEntry trackedEntry) throws Exception
     {
         final Timer.Context context = timer.time();
 
         try
         {
-            next.consume(trackedEntry);
+            final boolean success = next.consume(trackedEntry);
 
-            successMeter.mark();
+            (success ? successMeter : errorMeter).mark();
+
+            return success;
         }
         catch (Exception e)
         {

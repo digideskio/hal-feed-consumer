@@ -1,4 +1,5 @@
 package com.qmetric.feed.consumer.metrics
+
 import com.codahale.metrics.Meter
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
@@ -25,7 +26,7 @@ class EntryConsumerWithMetricsTest extends Specification {
 
     final successMeter = Mock(Meter)
 
-    def entryConsumerWithMetrics
+    EntryConsumerWithMetrics entryConsumerWithMetrics
 
     def setup()
     {
@@ -45,7 +46,7 @@ class EntryConsumerWithMetricsTest extends Specification {
         1 * timer.time() >> timerContext
 
         then:
-        1 * entryConsumer.consume(entry)
+        1 * entryConsumer.consume(entry) >> true
 
         then:
         1 * timerContext.stop()
@@ -57,14 +58,14 @@ class EntryConsumerWithMetricsTest extends Specification {
         entryConsumerWithMetrics.consume(entry)
 
         then:
-        1 * entryConsumer.consume(entry)
+        1 * entryConsumer.consume(entry) >> true
 
         then:
         1 * successMeter.mark()
         0 * errorMeter.mark()
     }
 
-    def "should record each unsuccessful consumption"()
+    def "should record each unsuccessful consumption resulting in an exception"()
     {
         given:
         entryConsumer.consume(entry) >> { throw new Exception() }
@@ -76,5 +77,18 @@ class EntryConsumerWithMetricsTest extends Specification {
         1 * errorMeter.mark()
         0 * successMeter.mark()
         thrown(Exception)
+    }
+
+    def "should record each unsuccessful consumption"()
+    {
+        when:
+        entryConsumerWithMetrics.consume(entry)
+
+        then:
+        1 * entryConsumer.consume(entry) >> false
+
+        then:
+        0 * successMeter.mark()
+        1 * errorMeter.mark()
     }
 }

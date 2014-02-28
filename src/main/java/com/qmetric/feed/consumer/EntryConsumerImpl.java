@@ -43,7 +43,7 @@ public class EntryConsumerImpl implements EntryConsumer
     }
 
     @Override
-    public void consume(final TrackedEntry trackedEntry) throws Exception
+    public boolean consume(final TrackedEntry trackedEntry) throws Exception
     {
         markAsConsuming(trackedEntry);
 
@@ -55,6 +55,8 @@ public class EntryConsumerImpl implements EntryConsumer
 
             notifyAllListeners(trackedEntry);
         }
+
+        return success;
     }
 
     private void markAsConsuming(final TrackedEntry trackedEntry) throws AlreadyConsumingException
