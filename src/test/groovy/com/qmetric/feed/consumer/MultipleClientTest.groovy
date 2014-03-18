@@ -1,9 +1,11 @@
 package com.qmetric.feed.consumer
+
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation
+import com.qmetric.hal.reader.HalResource
 import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import com.theoryinpractise.halbuilder.impl.representations.MutableRepresentation
 import org.junit.After
@@ -30,9 +32,9 @@ class MultipleClientTest {
     private static final SimpleDBFeedTracker tracker = new SimpleDBFeedTracker(client, DOMAIN_NAME)
     private static final executor = Executors.newFixedThreadPool(2)
     private static final resolver = new ResourceResolver() {
-        @Override ReadableRepresentation resolve(final EntryId id)
+        @Override HalResource resolve(final EntryId id)
         {
-            def representation = new MutableRepresentation(mock(RepresentationFactory), "/${id.toString()}")
+            def representation = new HalResource(new ObjectMapper(), new MutableRepresentation(mock(RepresentationFactory), "/${id.toString()}"))
             return representation
         }
     }
@@ -123,7 +125,7 @@ class MultipleClientTest {
     private static slowFaultyAction = new ConsumeAction() {
         @Override Result consume(final FeedEntry input)
         {
-            if (input.content.resourceLink.href.contains(MARKER))
+            if (input.content.resourceLink.get().href.contains(MARKER))
             {
                 println "hang-and-fail-action waiting 10 sec before failing on ${input.content.getResourceLink()}"
                 SECONDS.sleep(10)

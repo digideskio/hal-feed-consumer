@@ -1,17 +1,17 @@
 package com.qmetric.feed.consumer;
 
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
+import com.qmetric.hal.reader.HalResource;
 
 import static org.apache.commons.lang3.builder.EqualsBuilder.reflectionEquals;
 import static org.apache.commons.lang3.builder.HashCodeBuilder.reflectionHashCode;
 
 public class FeedEntry
 {
-    public final ReadableRepresentation content;
+    public final HalResource content;
 
     public final int retries;
 
-    public FeedEntry(final ReadableRepresentation content, final int retries)
+    public FeedEntry(final HalResource content, final int retries)
     {
         this.content = content;
         this.retries = retries;

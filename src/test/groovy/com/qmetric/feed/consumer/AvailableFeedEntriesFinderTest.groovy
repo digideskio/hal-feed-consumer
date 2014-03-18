@@ -1,7 +1,10 @@
 package com.qmetric.feed.consumer
+
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.base.Optional
 import com.google.common.io.Resources
 import com.qmetric.feed.consumer.store.FeedTracker
+import com.qmetric.hal.reader.HalReader
 import org.joda.time.DateTime
 import spock.lang.Specification
 
@@ -13,11 +16,13 @@ class AvailableFeedEntriesFinderTest extends Specification {
 
     def thirdPageEndpoint = Mock(FeedEndpoint)
 
-    FeedTracker tracker = Mock(FeedTracker)
+    def tracker = Mock(FeedTracker)
 
     def feedEndpointFactory = Mock(FeedEndpointFactory)
 
-    def finder = new AvailableFeedEntriesFinder(feedEndpoint, feedEndpointFactory, tracker, Optional.absent())
+    def halReader = new HalReader(new ObjectMapper())
+
+    def finder = new AvailableFeedEntriesFinder(feedEndpoint, feedEndpointFactory, tracker, Optional.absent(), halReader)
 
     def "should add all untracked entries"()
     {
@@ -36,7 +41,7 @@ class AvailableFeedEntriesFinderTest extends Specification {
     def "should add all untracked entries provided entries occurred after given earliest date restriction"()
     {
         given:
-        def storeWithRestrictionOnEarliestDate = new AvailableFeedEntriesFinder(feedEndpoint, feedEndpointFactory, tracker, earliestEntryDate())
+        def storeWithRestrictionOnEarliestDate = new AvailableFeedEntriesFinder(feedEndpoint, feedEndpointFactory, tracker, earliestEntryDate(), halReader)
         feedEndpoint.get() >> reader('/feedWithAllUnconsumed.json')
         tracker.isTracked(_ as EntryId) >>> [false, false]
 

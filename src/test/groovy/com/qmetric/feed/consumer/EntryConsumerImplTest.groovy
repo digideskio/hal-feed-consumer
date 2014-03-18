@@ -1,9 +1,8 @@
 package com.qmetric.feed.consumer
-
 import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.FeedTracker
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation
+import com.qmetric.hal.reader.HalResource
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -27,7 +26,7 @@ class EntryConsumerImplTest extends Specification {
 
     def entry = new TrackedEntry(EntryId.of(anyString()), RETRIES)
 
-    def resource = Mock(ReadableRepresentation)
+    def resource = Mock(HalResource)
 
     def "should consume entry"()
     {

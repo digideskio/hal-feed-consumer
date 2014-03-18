@@ -5,10 +5,9 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.qmetric.feed.consumer.store.FeedTracker;
-import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
+import com.qmetric.hal.reader.HalReader;
+import com.qmetric.hal.reader.HalResource;
 import com.theoryinpractise.halbuilder.api.Link;
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
-import com.theoryinpractise.halbuilder.api.RepresentationFactory;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -35,16 +34,17 @@ class AvailableFeedEntriesFinder
 
     private final Optional<EarliestEntryLimit> earliestEntryLimit;
 
-    private final RepresentationFactory representationFactory;
+    private final HalReader halReader;
 
     private final FeedEndpointFactory feedEndpointFactory;
 
-    AvailableFeedEntriesFinder(final FeedEndpoint endpoint, final FeedEndpointFactory feedEndpointFactory, final FeedTracker feedTracker, final Optional<EarliestEntryLimit> earliestEntryLimit)
+    AvailableFeedEntriesFinder(final FeedEndpoint endpoint, final FeedEndpointFactory feedEndpointFactory, final FeedTracker feedTracker,
+                               final Optional<EarliestEntryLimit> earliestEntryLimit, final HalReader halReader)
     {
         this.endpoint = endpoint;
         this.feedTracker = feedTracker;
         this.earliestEntryLimit = earliestEntryLimit;
-        this.representationFactory = new DefaultRepresentationFactory();
+        this.halReader = halReader;
         this.feedEndpointFactory = feedEndpointFactory;
     }
 
@@ -68,9 +68,9 @@ class AvailableFeedEntriesFinder
                 .reverse();
     }
 
-    private EntryId idOf(final ReadableRepresentation entry)
+    private EntryId idOf(final HalResource entry)
     {
-        return EntryId.of((String) entry.getValue(ENTRY_ID));
+        return EntryId.of(entry.getValueAsString(ENTRY_ID).get());
     }
 
     private class UnconsumedPageIterator implements Iterator<List<EntryId>>
@@ -79,11 +79,11 @@ class AvailableFeedEntriesFinder
 
         private static final String PUBLISHED = "_published";
 
-        private Optional<ReadableRepresentation> currentPage;
+        private Optional<HalResource> currentPage;
 
         UnconsumedPageIterator()
         {
-            currentPage = Optional.of(representationFactory.readRepresentation(endpoint.get()));
+            currentPage = Optional.of(halReader.read(endpoint.get()));
         }
 
         @Override public boolean hasNext()
@@ -98,76 +98,76 @@ class AvailableFeedEntriesFinder
 
         @Override public List<EntryId> next()
         {
-            log.info("Reading feed-page {}", currentPage.get().getResourceLink().getHref());
+            log.info("Reading feed-page {}", currentPage.get().getResourceLink().get().getHref());
 
-            final List<? extends ReadableRepresentation> allFromPage = currentPageEntries();
+            final List<HalResource> allFromPage = currentPageEntries();
 
-            final List<? extends ReadableRepresentation> newEntries = newEntries(allFromPage);
+            final List<HalResource> newEntries = newEntries(allFromPage);
 
             flipToNextPage(allFromPage, newEntries);
 
-            return from(newEntries).transform(new Function<ReadableRepresentation, EntryId>()
+            return from(newEntries).transform(new Function<HalResource, EntryId>()
             {
-                @Override public EntryId apply(final ReadableRepresentation input)
+                @Override public EntryId apply(final HalResource input)
                 {
                     return idOf(input);
                 }
             }).toList();
         }
 
-        private List<? extends ReadableRepresentation> currentPageEntries()
+        private List<HalResource> currentPageEntries()
         {
             return currentPage.get().getResourcesByRel("entries");
         }
 
-        private void flipToNextPage(final List<? extends ReadableRepresentation> allFromPage, final List<? extends ReadableRepresentation> unconsumedFromPage)
+        private void flipToNextPage(final List<HalResource> allFromPage, final List<HalResource> unconsumedFromPage)
         {
             log.debug("Found {} unconsumed entries out of {}", unconsumedFromPage.size(), allFromPage.size());
 
-            this.currentPage = allFromPage.size() == unconsumedFromPage.size() ? getNextPage() : Optional.<ReadableRepresentation>absent();
+            this.currentPage = allFromPage.size() == unconsumedFromPage.size() ? getNextPage() : Optional.<HalResource>absent();
 
             log.debug("Next page: {}", currentPage);
         }
 
-        private Optional<ReadableRepresentation> getNextPage()
+        private Optional<HalResource> getNextPage()
         {
-            return nextLink(currentPage.get()).transform(new Function<Link, ReadableRepresentation>()
+            return nextLink(currentPage.get()).transform(new Function<Link, HalResource>()
             {
-                @Override public ReadableRepresentation apply(final Link link)
+                @Override public HalResource apply(final Link link)
                 {
-                    return representationFactory.readRepresentation(feedEndpointFactory.create(link.getHref()).get());
+                    return halReader.read(feedEndpointFactory.create(link.getHref()).get());
                 }
             });
         }
 
-        private Optional<Link> nextLink(final ReadableRepresentation readableRepresentation)
+        private Optional<Link> nextLink(final HalResource entry)
         {
-            return Optional.fromNullable(readableRepresentation.getLinkByRel(NEXT_LINK_RELATION));
+            return entry.getLinkByRel(NEXT_LINK_RELATION);
         }
 
-        private List<? extends ReadableRepresentation> newEntries(final List<? extends ReadableRepresentation> entries)
+        private List<HalResource> newEntries(final List<HalResource> entries)
         {
-            return from(entries).filter(new Predicate<ReadableRepresentation>()
+            return from(entries).filter(new Predicate<HalResource>()
             {
                 @Override
-                public boolean apply(final ReadableRepresentation input)
+                public boolean apply(final HalResource input)
                 {
                     return hasConsumablePublishedDate(input) && isNotTracked(input);
                 }
 
-                private boolean isNotTracked(final ReadableRepresentation entry)
+                private boolean isNotTracked(final HalResource entry)
                 {
                     return !feedTracker.isTracked(idOf(entry));
                 }
 
-                private boolean hasConsumablePublishedDate(final ReadableRepresentation entry)
+                private boolean hasConsumablePublishedDate(final HalResource entry)
                 {
                     return !earliestEntryLimit.isPresent() || earliestEntryLimit.get().date.isBefore(publishedDate(entry));
                 }
 
-                private DateTime publishedDate(final ReadableRepresentation entry)
+                private DateTime publishedDate(final HalResource entry)
                 {
-                    return DATE_FORMATTER.parseDateTime((String) entry.getValue(PUBLISHED));
+                    return DATE_FORMATTER.parseDateTime(entry.getValueAsString(PUBLISHED).get());
                 }
             }).toList();
         }

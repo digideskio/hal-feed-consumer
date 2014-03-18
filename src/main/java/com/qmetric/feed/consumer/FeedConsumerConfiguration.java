@@ -3,16 +3,17 @@ package com.qmetric.feed.consumer;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
-import com.qmetric.feed.consumer.metrics.FeedTrackerConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.EntryConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.FeedConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.FeedConsumerWithMetrics;
+import com.qmetric.feed.consumer.metrics.FeedTrackerConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.PollingActivityHealthCheck;
 import com.qmetric.feed.consumer.store.FeedTracker;
+import com.qmetric.hal.reader.HalReader;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import com.theoryinpractise.halbuilder.DefaultRepresentationFactory;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
@@ -37,6 +38,8 @@ public class FeedConsumerConfiguration
     private final FeedEndpointFactory feedEndpointFactory = new FeedEndpointFactory(feedClient, new FeedEndpointFactory.ConnectionTimeout(MINUTES, 1));
 
     private final String name;
+
+    private HalReader halReader = new HalReader(new ObjectMapper());
 
     private HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
 
@@ -126,6 +129,13 @@ public class FeedConsumerConfiguration
         return this;
     }
 
+    public FeedConsumerConfiguration withHalReader(final HalReader halReader)
+    {
+        this.halReader = halReader;
+
+        return this;
+    }
+
     public FeedConsumerConfiguration withListeners(final EntryConsumerListener... listeners)
     {
         entryConsumerListeners.addAll(asList(listeners));
@@ -180,7 +190,7 @@ public class FeedConsumerConfiguration
 
     private AvailableFeedEntriesFinder feedEntriesFinder()
     {
-        return new AvailableFeedEntriesFinder(feedEndpointFactory.create(feedUrl), feedEndpointFactory, feedTracker, earliestEntryLimit);
+        return new AvailableFeedEntriesFinder(feedEndpointFactory.create(feedUrl), feedEndpointFactory, feedTracker, earliestEntryLimit, halReader);
     }
 
     private FeedConsumer feedConsumer()
@@ -196,7 +206,7 @@ public class FeedConsumerConfiguration
 
     private ResourceResolver resourceResolver()
     {
-        return resourceResolver.or(new DefaultResourceResolver(feedUrl, feedEndpointFactory, new DefaultRepresentationFactory()));
+        return resourceResolver.or(new DefaultResourceResolver(feedUrl, feedEndpointFactory, halReader));
     }
 
     private void validateConfiguration()

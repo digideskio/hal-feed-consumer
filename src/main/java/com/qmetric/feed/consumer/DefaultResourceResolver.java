@@ -1,7 +1,7 @@
 package com.qmetric.feed.consumer;
 
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation;
-import com.theoryinpractise.halbuilder.api.RepresentationFactory;
+import com.qmetric.hal.reader.HalReader;
+import com.qmetric.hal.reader.HalResource;
 
 import static java.lang.String.format;
 
@@ -11,20 +11,20 @@ public class DefaultResourceResolver implements ResourceResolver
 
     private final String feedUrl;
 
-    private final RepresentationFactory representationFactory;
+    private final HalReader halReader;
 
     private final FeedEndpointFactory endpoint;
 
-    public DefaultResourceResolver(final String feedUrl, final FeedEndpointFactory endpoint, final RepresentationFactory representationFactory)
+    public DefaultResourceResolver(final String feedUrl, final FeedEndpointFactory endpoint, final HalReader halReader)
     {
         this.feedUrl = feedUrl;
         this.endpoint = endpoint;
-        this.representationFactory = representationFactory;
+        this.halReader = halReader;
     }
 
-    @Override public ReadableRepresentation resolve(final EntryId id)
+    @Override public HalResource resolve(final EntryId id)
     {
-        return representationFactory.readRepresentation(endpoint.create(buildUrlToFeedEntry(id)).get());
+        return halReader.read(endpoint.create(buildUrlToFeedEntry(id)).get());
     }
 
     private String buildUrlToFeedEntry(final EntryId id)

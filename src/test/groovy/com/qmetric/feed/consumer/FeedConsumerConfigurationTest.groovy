@@ -4,6 +4,7 @@ import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry
 import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.FeedTracker
+import com.qmetric.hal.reader.HalReader
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
 import org.joda.time.DateTime
 import spock.lang.Specification
@@ -100,6 +101,18 @@ class FeedConsumerConfigurationTest extends Specification {
 
         then:
         feedConsumerConfiguration.entryConsumerListeners == [listener]
+    }
+
+    def "should accept overridden hal reader"()
+    {
+        given:
+        final HalReader halReader = Mock(HalReader)
+
+        when:
+        feedConsumerConfiguration.withHalReader(halReader)
+
+        then:
+        feedConsumerConfiguration.halReader == halReader
     }
 
     def "should accept metric registry"()

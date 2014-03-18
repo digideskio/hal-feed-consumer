@@ -1,7 +1,7 @@
 package com.qmetric.feed.consumer
 
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation
-import com.theoryinpractise.halbuilder.api.RepresentationFactory
+import com.qmetric.hal.reader.HalReader
+import com.qmetric.hal.reader.HalResource
 import spock.lang.Specification
 
 class DefaultResourceResolverTest extends Specification {
@@ -10,20 +10,20 @@ class DefaultResourceResolverTest extends Specification {
 
     def endpointFactory = Mock(FeedEndpointFactory)
 
-    def representationFactory = Mock(RepresentationFactory)
+    def halReader = Mock(HalReader)
 
-    def resolver = new DefaultResourceResolver(feedUrl, endpointFactory, representationFactory)
+    def resolver = new DefaultResourceResolver(feedUrl, endpointFactory, halReader)
 
     def 'gets endpoint reader and passes it to the representation factory'()
     {
         given:
         def reader = Mock(Reader)
-        def representation = Mock(ReadableRepresentation)
+        def resource = Mock(HalResource)
         when:
         def result = resolver.resolve(EntryId.of("1"))
         then:
         1 * endpointFactory.create(_ as String) >> Mock(FeedEndpoint) { it.get() >> reader }
-        1 * representationFactory.readRepresentation(reader) >> representation
-        result == representation
+        1 * halReader.read(reader) >> resource
+        result == resource
     }
 }
