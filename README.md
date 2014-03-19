@@ -5,6 +5,7 @@ HAL+JSON feed consumer
 
 Java library used to consume [HAL+JSON](http://stateless.co/hal_specification.html) feeds produced by [hal-feed-server](https://github.com/qmetric/hal-feed-server).
 
+
 Features
 ---------
 
@@ -52,6 +53,12 @@ Library available from [Maven central repository](http://search.maven.org/)
 </dependency>
 ```
 
+Feed tracker implementations
+------------------------------
+
+* Built into this library Amazon SimpleDB  (if choosing this option, note SimpleDB limit of 10GB per domain)
+* Mysql https://github.com/qmetric/hal-feed-consumer-mysql
+
 
 Health checks and metrics
 -------------------------
@@ -89,10 +96,3 @@ Competing consumer pattern
 Supports the competing consumer pattern. Multiple consumers can read and process entries safely from the same feed.
 
 Note: In order to allow concurrency between multiple consumers, feed entries may be processed in an order differing from their publish date.
-
-
-Feed tracker implementations
-------------------------------
-
-* Built in to this library Amazon SimpleDB
-* Mysql https://github.com/qmetric/hal-feed-consumer-mysql
