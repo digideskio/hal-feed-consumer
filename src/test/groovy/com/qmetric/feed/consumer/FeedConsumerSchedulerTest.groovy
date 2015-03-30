@@ -14,7 +14,7 @@ class FeedConsumerSchedulerTest extends Specification {
     final consumer = Mock(FeedConsumerImpl)
     final finder = Mock(AvailableFeedEntriesFinder)
 
-    final scheduler = new FeedConsumerScheduler(consumer, finder, interval, scheduledExecutionService)
+    final scheduler = new FeedConsumerScheduler(consumer, finder, interval, scheduledExecutionService, true)
 
     def "should periodically consume feed"()
     {
