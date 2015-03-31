@@ -2,8 +2,8 @@ language: java
 jdk: openjdk7
 env:
   global:
-    - secure: EyGZtcnwGSXbpaHwCZtcQv582lGEGi9icml4zvJhcqC+zRTJGcesRqCHy0dl94L0LSuucqDZCejwyZ9s2HGXSmedqL6qFRsHx2JbucrnklAe7lDdcOO6iZSixdedq1bwgY591NvcHwa+P9P3C0jjTaj+UpqvRl7Tr2ZUwTu5tG8=
-    - secure: FAr4GuOjYi9W4RuzTKpuECr4b0F4kuqM6Zyy+dFUr9k5dhVWzFE3LGBW20OM9x/+demwjOY2zGOGKiNFIqRTWWWgKrK7lp0vo86VWaqnd0f+4hA28jE0BQ6DZTAVLjl+mMHMATz7tYAQwGeVixWetnUqLbYkYCkxXDKxog450s4=
+    - secure: "hA1qzELtO00vW23cawY87XxEjTSeG8T6OAl+M+aAPAANixpp8D1SKI5fK1z5otiMUxS60A7CaVXmHK4s5DslOgpa4ttXnXzfCZoMpzfIOhN+v8G48TQXpm6j6BrCQ8x8jIknKh8VHPazI21fkdNTLm7ew2/flRF+QAysgrkVxZU="
+    - secure: "w4fWrQBR+m/zCW/U7hXUmOacwU2Y3PRm1c9UGl6fYkVo3zpY1l3wFtpDc6uIzKqRXAJJWaF1JJ5GOjA+CdV93alMQkthbZp14bWwu/mYskhdNKDtOapIeybsddUoOL/Jf1yqAoDpeB2431OpDR5hOn5isotsU++RpmtTtCo4VFQ="
 branches:
   except:
     - /_.*$/
