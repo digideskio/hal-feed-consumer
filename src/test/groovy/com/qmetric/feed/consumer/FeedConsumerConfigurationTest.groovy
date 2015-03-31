@@ -9,6 +9,7 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter
 import org.joda.time.DateTime
 import spock.lang.Specification
 
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 @SuppressWarnings("GroovyAccessibility")
@@ -172,5 +173,29 @@ class FeedConsumerConfigurationTest extends Specification {
 
         then:
         feedConsumerConfiguration.resourceResolver == Optional.of(resourceResolver)
+    }
+
+    def "should accept overridden scheduled executor service"()
+    {
+        given:
+        final executorService = Mock(ScheduledExecutorService)
+
+        when:
+        feedConsumerConfiguration.withScheduledExecutorService(executorService)
+
+        then:
+        feedConsumerConfiguration.scheduledExecutorService == executorService;
+    }
+
+    def "should accept register shutdown hook"()
+    {
+        given:
+        final registerShutdownHook = false
+
+        when:
+        feedConsumerConfiguration.registerShutdownHook(registerShutdownHook)
+
+        then:
+        feedConsumerConfiguration.registerShutdownHook == registerShutdownHook
     }
 }

@@ -18,6 +18,8 @@ import org.joda.time.DateTime;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -60,6 +62,10 @@ public class FeedConsumerConfiguration
     private Optional<ResourceResolver> resourceResolver = Optional.absent();
 
     private Optional<Integer> maxRetries = Optional.absent();
+
+    private boolean registerShutdownHook = true;
+
+    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     public FeedConsumerConfiguration(final String name)
     {
@@ -164,6 +170,20 @@ public class FeedConsumerConfiguration
         return this;
     }
 
+    public FeedConsumerConfiguration registerShutdownHook(boolean registerShutdownHook)
+    {
+        this.registerShutdownHook = registerShutdownHook;
+
+        return this;
+    }
+
+    public FeedConsumerConfiguration withScheduledExecutorService(ScheduledExecutorService scheduledExecutorService)
+    {
+        this.scheduledExecutorService = scheduledExecutorService;
+
+        return this;
+    }
+
     public HealthCheckRegistry getHealthCheckRegistry()
     {
         return healthCheckRegistry;
@@ -185,7 +205,7 @@ public class FeedConsumerConfiguration
 
     private FeedConsumerScheduler buildConsumerScheduler()
     {
-        return new FeedConsumerScheduler(feedConsumer(), feedEntriesFinder(), pollingInterval);
+        return new FeedConsumerScheduler(feedConsumer(), feedEntriesFinder(), pollingInterval, scheduledExecutorService, registerShutdownHook);
     }
 
     private AvailableFeedEntriesFinder feedEntriesFinder()

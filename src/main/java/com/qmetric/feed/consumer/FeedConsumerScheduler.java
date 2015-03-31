@@ -3,10 +3,9 @@ package com.qmetric.feed.consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
 public class FeedConsumerScheduler
 {
@@ -18,24 +17,25 @@ public class FeedConsumerScheduler
 
     private final ScheduledExecutorService scheduledExecutorService;
 
+    private final boolean registerShutdownHook;
+
     private final AvailableFeedEntriesFinder feedEntriesFinder;
 
     private final AtomicInteger invocationCounter = new AtomicInteger(0);
 
     private ShutdownProcedure shutdownProcedure;
 
-    public FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval)
-    {
-        this(consumer, feedEntriesFinder, interval, newSingleThreadScheduledExecutor());
+    public FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval) {
+        this(consumer, feedEntriesFinder, interval, Executors.newSingleThreadScheduledExecutor(), true);
     }
 
-    FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval,
-                          final ScheduledExecutorService scheduledExecutorService)
+    FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval, final ScheduledExecutorService scheduledExecutorService, final boolean registerShutdownHook)
     {
         this.consumer = consumer;
         this.interval = interval;
         this.scheduledExecutorService = scheduledExecutorService;
-        shutdownProcedure = new ShutdownProcedure(scheduledExecutorService);
+        this.registerShutdownHook = registerShutdownHook;
+        this.shutdownProcedure = new ShutdownProcedure(scheduledExecutorService);
         this.feedEntriesFinder = feedEntriesFinder;
     }
 
@@ -49,12 +49,24 @@ public class FeedConsumerScheduler
                 pollFeed();
             }
         }, 0, interval.time, interval.unit);
-        shutdownProcedure.registerShutdownHook();
+
+        if (registerShutdownHook)
+        {
+            LOG.info("Registering shutdown hook");
+            shutdownProcedure.registerShutdownHook();
+        }
     }
 
     public void stop()
     {
-        shutdownProcedure.runAndRemoveHook();
+        if (registerShutdownHook)
+        {
+            shutdownProcedure.runAndRemoveHook();
+        }
+        else
+        {
+            shutdownProcedure.run();
+        }
     }
 
     protected int getInvocationsCount()
