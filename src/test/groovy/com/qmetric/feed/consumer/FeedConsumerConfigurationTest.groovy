@@ -53,7 +53,7 @@ class FeedConsumerConfigurationTest extends Specification {
         feedConsumerConfiguration.withAuthenticationCredentials(new FeedConsumerConfiguration.Credentials("user", "password".bytes))
 
         then:
-        feedConsumerConfiguration.feedClientBuilder.getConfiguration().isRegistered(HttpAuthenticationFeature)
+        feedConsumerConfiguration.feedClient.getConfiguration().isRegistered(HttpAuthenticationFeature)
     }
 
     def "should accept feed tracker"()
