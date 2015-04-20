@@ -1,7 +1,8 @@
 package com.qmetric.feed.consumer;
 
-import com.sun.jersey.api.client.Client;
+import org.glassfish.jersey.client.ClientProperties;
 
+import javax.ws.rs.client.Client;
 import java.util.concurrent.TimeUnit;
 
 public class FeedEndpointFactory
@@ -16,13 +17,13 @@ public class FeedEndpointFactory
 
     private void initClient(final ConnectionTimeout timeout)
     {
-        client.setConnectTimeout(timeout.asMillis());
-        client.setReadTimeout(timeout.asMillis());
+        client.property(ClientProperties.CONNECT_TIMEOUT, timeout.asMillis());
+        client.property(ClientProperties.READ_TIMEOUT, timeout.asMillis());
     }
 
     public FeedEndpoint create(final String url)
     {
-        return new FeedEndpoint(client.resource(url));
+        return new FeedEndpoint(client.target(url));
     }
 
     public static class ConnectionTimeout

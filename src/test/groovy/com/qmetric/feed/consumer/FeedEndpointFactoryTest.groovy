@@ -1,11 +1,19 @@
 package com.qmetric.feed.consumer
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientHandlerException
+
+import org.glassfish.jersey.client.ClientProperties
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import spark.*
+import spark.Request
+import spark.Response
+import spark.Route
+import spark.Spark
+import spark.SparkStopper
 import spock.lang.Specification
 import spock.lang.Timeout
+
+import javax.ws.rs.ProcessingException
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.ClientBuilder
 
 import static java.util.concurrent.TimeUnit.SECONDS
 
@@ -45,28 +53,28 @@ class FeedEndpointFactoryTest extends Specification {
         def feedEndpoint = new FeedEndpointFactory(client, timeout).create("any_url")
 
         then:
-        1 * client.setConnectTimeout(_ as Integer)
-        1 * client.setReadTimeout(_ as Integer)
+        1 * client.property(ClientProperties.CONNECT_TIMEOUT, _ as Integer)
+        1 * client.property(ClientProperties.READ_TIMEOUT, _ as Integer)
         null != feedEndpoint
     }
 
     @Timeout(value = 10, unit = SECONDS) def 'throws SocketTimeoutException (read-timeout)'()
     {
         when:
-        new FeedEndpointFactory(new Client(), timeout).create("http://localhost:${SERVER_PORT}${FEED_PATH}").get()
+        new FeedEndpointFactory(ClientBuilder.newClient(), timeout).create("http://localhost:${SERVER_PORT}${FEED_PATH}").get()
 
         then:
-        def exception = thrown(ClientHandlerException)
+        def exception = thrown(ProcessingException)
         SocketTimeoutException.isAssignableFrom(exception.getCause().class)
     }
 
     @Timeout(value = 10, unit = SECONDS) def 'throws ConnectException'()
     {
         when:
-        new FeedEndpointFactory(new Client(), timeout).create("http://localhost:15000").get()
+        new FeedEndpointFactory(ClientBuilder.newClient(), timeout).create("http://localhost:15000").get()
 
         then:
-        def exception = thrown(ClientHandlerException)
+        def exception = thrown(ProcessingException)
         ConnectException.isAssignableFrom(exception.getCause().class)
     }
 }

@@ -12,10 +12,11 @@ import com.qmetric.feed.consumer.metrics.FeedTrackerConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.PollingActivityHealthCheck;
 import com.qmetric.feed.consumer.store.FeedTracker;
 import com.qmetric.hal.reader.HalReader;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.joda.time.DateTime;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Executors;
@@ -35,7 +36,7 @@ public class FeedConsumerConfiguration
 
     private final Collection<EntryConsumerListener> entryConsumerListeners = new ArrayList<EntryConsumerListener>();
 
-    private final Client feedClient = new Client();
+    private final Client feedClient = ClientBuilder.newBuilder().build();
 
     private final FeedEndpointFactory feedEndpointFactory = new FeedEndpointFactory(feedClient, new FeedEndpointFactory.ConnectionTimeout(MINUTES, 1));
 
@@ -130,7 +131,10 @@ public class FeedConsumerConfiguration
 
     public FeedConsumerConfiguration withAuthenticationCredentials(final Credentials credentials)
     {
-        feedClient.addFilter(new HTTPBasicAuthFilter(credentials.username, credentials.password));
+        final HttpAuthenticationFeature httpAuthFeature = HttpAuthenticationFeature.basicBuilder()
+                .credentials(credentials.username, credentials.password)
+                .build();
+        feedClient.register(httpAuthFeature);
 
         return this;
     }

@@ -1,18 +1,20 @@
 package com.qmetric.feed.consumer.metrics
 
-import com.sun.jersey.api.client.Client
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
 import com.theoryinpractise.halbuilder.api.RepresentationFactory
+import org.glassfish.jersey.client.ClientResponse
 import spock.lang.Specification
+
+import javax.ws.rs.client.Client
+import javax.ws.rs.client.Invocation
+import javax.ws.rs.client.WebTarget
 
 class FeedConnectivityHealthCheckTest extends Specification {
 
     final client = Mock(Client)
 
-    final webResource = Mock(WebResource)
+    final webTarget = Mock(WebTarget)
 
-    final webResourceBuilder = Mock(WebResource.Builder)
+    final invocationBuilder = Mock(Invocation.Builder)
 
     final response = Mock(ClientResponse)
 
@@ -20,9 +22,9 @@ class FeedConnectivityHealthCheckTest extends Specification {
 
     def setup()
     {
-        client.resource("http://host:123/ping") >> webResource
-        webResource.accept(RepresentationFactory.HAL_JSON) >> webResourceBuilder
-        webResourceBuilder.get(ClientResponse.class) >> response
+        client.target("http://host:123/ping") >> webTarget
+        webTarget.request(RepresentationFactory.HAL_JSON) >> invocationBuilder
+        invocationBuilder.get(ClientResponse.class) >> response
     }
 
     def "should know when feed connectivity is healthy"()
