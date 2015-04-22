@@ -1,9 +1,9 @@
 package com.qmetric.feed.consumer.metrics;
 
 import com.codahale.metrics.health.HealthCheck;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
+import org.glassfish.jersey.client.ClientResponse;
 
+import javax.ws.rs.client.Client;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -27,7 +27,7 @@ public class FeedConnectivityHealthCheck extends HealthCheck
 
     @Override protected Result check() throws Exception
     {
-        final ClientResponse clientResponse = client.resource(feedPingUrl).accept(HAL_JSON).get(ClientResponse.class);
+        final ClientResponse clientResponse = client.target(feedPingUrl).request(HAL_JSON).get(ClientResponse.class);
 
         if (clientResponse.getStatus() == HTTP_OK)
         {

@@ -1,11 +1,13 @@
 package com.qmetric.feed.consumer
 
-import com.sun.jersey.api.client.ClientResponse
-import com.sun.jersey.api.client.WebResource
 import spock.lang.Specification
 
-import static com.sun.jersey.api.client.ClientResponse.Status.NOT_FOUND
-import static com.sun.jersey.api.client.ClientResponse.Status.OK
+import javax.ws.rs.client.Invocation
+import javax.ws.rs.client.WebTarget
+import javax.ws.rs.core.Response
+
+import static javax.ws.rs.core.Response.Status.NOT_FOUND
+import static javax.ws.rs.core.Response.Status.OK
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
 import static org.apache.commons.io.IOUtils.toString
 
@@ -15,32 +17,32 @@ class FeedEndpointTest extends Specification {
         given:
         def expectedString = anyNonEmptyString()
         def inputStream = new ByteArrayInputStream(expectedString.getBytes("UTF-8"))
-        def resource = Mock(WebResource)
-        def resourceBuilder = Mock(WebResource.Builder)
-        def response = Mock(ClientResponse)
-        def feedEndpoint = new FeedEndpoint(resource)
+        def target = Mock(WebTarget)
+        def invocationBuilder = Mock(Invocation.Builder)
+        def response = Mock(Response)
+        def feedEndpoint = new FeedEndpoint(target)
 
         when:
         final reader = feedEndpoint.get()
 
         then:
-        1 * resource.accept("application/hal+json") >> resourceBuilder
-        1 * resourceBuilder.get(ClientResponse.class) >> response
-        1 * response.getEntityInputStream() >> inputStream
-        1 * response.getClientResponseStatus() >> OK
+        1 * target.request("application/hal+json") >> invocationBuilder
+        1 * invocationBuilder.get() >> response
+        1 * response.readEntity(InputStream) >> inputStream
+        1 * response.getStatus() >> OK.statusCode
         expectedString == toString(reader)
     }
 
     def 'throws exception when http request fails'()
     {
         given:
-        def resource = Mock(WebResource) { r ->
-            r.accept(_) >> Mock(WebResource.Builder) { WebResource.Builder b ->
-                b.get(ClientResponse) >> Mock(ClientResponse) { ClientResponse c -> //
-                    c.getClientResponseStatus() >> NOT_FOUND }
+        def target = Mock(WebTarget) { t ->
+            t.request(_) >> Mock(Invocation.Builder) { Invocation.Builder b ->
+                b.get() >> Mock(Response) { Response r -> //
+                    r.getStatus() >> NOT_FOUND.statusCode }
             }
         }
-        def endpoint = new FeedEndpoint(resource)
+        def endpoint = new FeedEndpoint(target)
 
         when:
         endpoint.get()
