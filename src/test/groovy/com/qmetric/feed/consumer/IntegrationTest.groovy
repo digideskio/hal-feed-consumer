@@ -12,23 +12,24 @@ import org.junit.BeforeClass
 import org.junit.Test
 import spark.Spark
 
-import static com.google.common.base.Preconditions.checkState
 import static com.qmetric.feed.consumer.DomainNameFactory.userPrefixedDomainName
-import static java.lang.System.getenv
+import static com.qmetric.feed.consumer.utils.TestEnvironment.accessKey
+import static com.qmetric.feed.consumer.utils.TestEnvironment.secretKey
+import static com.qmetric.feed.consumer.utils.TestEnvironment.verifyEnvironment
 import static java.util.concurrent.TimeUnit.SECONDS
-import static org.apache.commons.lang3.StringUtils.isBlank
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.mockito.Matchers.any
-import static org.mockito.Mockito.*
+import static org.mockito.Mockito.mock
+import static org.mockito.Mockito.times
+import static org.mockito.Mockito.verify
+import static org.mockito.Mockito.when
 
 class IntegrationTest {
     private static final FEED_SIZE = 9
     private static final PAGE_SIZE = 3
     private static final FEED_SERVER_PORT = 15000
     private static final DOMAIN_NAME = userPrefixedDomainName('hal-feed-consumer-test')
-    private final String accessKey = getenv('HAL_CONSUMER_IT_AWS_ACCESS_KEY')
-    private final String secretKey = getenv('HAL_CONSUMER_IT_AWS_SECRET_KEY')
     private final AmazonSimpleDBClient simpleDBClient
     private final SimpleDBUtils simpleDBUtils
     private final FeedTracker tracker
@@ -39,9 +40,8 @@ class IntegrationTest {
 
     public IntegrationTest()
     {
-        checkState(!isBlank(accessKey), 'Missing env variable %s', 'HAL_CONSUMER_IT_AWS_ACCESS_KEY')
-        checkState(!isBlank(accessKey), 'Missing env variable %s', 'HAL_CONSUMER_IT_AWS_SECRET_KEY')
-        simpleDBClient = new SimpleDBClientFactory(accessKey, secretKey).simpleDBClient()
+        verifyEnvironment()
+        simpleDBClient = new SimpleDBClientFactory(accessKey(), secretKey()).simpleDBClient()
         simpleDBUtils = new SimpleDBUtils(simpleDBClient)
         tracker = new SimpleDBFeedTracker(simpleDBClient, DOMAIN_NAME)
         consumer = new FeedConsumerConfiguration("test-feed")

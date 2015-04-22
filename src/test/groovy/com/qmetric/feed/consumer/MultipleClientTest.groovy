@@ -10,13 +10,16 @@ import com.theoryinpractise.halbuilder.api.RepresentationFactory
 import com.theoryinpractise.halbuilder.impl.representations.MutableRepresentation
 import org.junit.After
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
 import static com.qmetric.feed.consumer.DomainNameFactory.userPrefixedDomainName
-import static java.lang.System.getenv
+import static com.qmetric.feed.consumer.utils.TestEnvironment.accessKey
+import static com.qmetric.feed.consumer.utils.TestEnvironment.secretKey
+import static com.qmetric.feed.consumer.utils.TestEnvironment.verifyEnvironment
 import static java.lang.Thread.currentThread
 import static java.util.Collections.emptyList
 import static java.util.concurrent.TimeUnit.SECONDS
@@ -27,9 +30,9 @@ import static org.mockito.Mockito.mock
 class MultipleClientTest {
     private static final FEED_SIZE = 9
     private static final String MARKER = 'throw-exception'
-    private static final AmazonSimpleDBClient client = new SimpleDBClientFactory(getenv('HAL_CONSUMER_IT_AWS_ACCESS_KEY'), getenv('HAL_CONSUMER_IT_AWS_SECRET_KEY')).simpleDBClient()
+    private static AmazonSimpleDBClient client
+    private static SimpleDBFeedTracker tracker
     private static final String DOMAIN_NAME = userPrefixedDomainName('hal-feed-consumer-test')
-    private static final SimpleDBFeedTracker tracker = new SimpleDBFeedTracker(client, DOMAIN_NAME)
     private static final executor = Executors.newFixedThreadPool(2)
     private static final resolver = new ResourceResolver() {
         @Override HalResource resolve(final EntryId id)
@@ -37,6 +40,13 @@ class MultipleClientTest {
             def representation = new HalResource(new ObjectMapper(), new MutableRepresentation(mock(RepresentationFactory), "/${id.toString()}"))
             return representation
         }
+    }
+
+    @BeforeClass public static void setupFeedTracker()
+    {
+        verifyEnvironment()
+        client = new SimpleDBClientFactory(accessKey(), secretKey()).simpleDBClient()
+        tracker = new SimpleDBFeedTracker(client, DOMAIN_NAME)
     }
 
     @Before public void setupDomain()

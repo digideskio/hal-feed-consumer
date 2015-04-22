@@ -213,6 +213,30 @@
                     <reuseForks>false</reuseForks>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.4</version>
+                <executions>
+                    <execution>
+                        <id>enforce-test-environment-variables-are-set</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <rules>
+                        <requireEnvironmentVariable>
+                            <variableName>HAL_CONSUMER_IT_AWS_ACCESS_KEY</variableName>
+                        </requireEnvironmentVariable>
+                        <requireEnvironmentVariable>
+                            <variableName>HAL_CONSUMER_IT_AWS_SECRET_KEY</variableName>
+                        </requireEnvironmentVariable>
+                    </rules>
+                    <fail>true</fail>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
