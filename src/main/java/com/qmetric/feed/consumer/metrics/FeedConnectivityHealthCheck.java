@@ -1,9 +1,9 @@
 package com.qmetric.feed.consumer.metrics;
 
 import com.codahale.metrics.health.HealthCheck;
-import org.glassfish.jersey.client.ClientResponse;
 
 import javax.ws.rs.client.Client;
+import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -12,6 +12,7 @@ import static com.codahale.metrics.health.HealthCheck.Result.unhealthy;
 import static com.theoryinpractise.halbuilder.api.RepresentationFactory.HAL_JSON;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_OK;
+import static javax.ws.rs.core.MediaType.TEXT_PLAIN;
 
 public class FeedConnectivityHealthCheck extends HealthCheck
 {
@@ -27,15 +28,15 @@ public class FeedConnectivityHealthCheck extends HealthCheck
 
     @Override protected Result check() throws Exception
     {
-        final ClientResponse clientResponse = client.target(feedPingUrl).request(HAL_JSON).get(ClientResponse.class);
+        final Response response = client.target(feedPingUrl).request(TEXT_PLAIN, HAL_JSON).get(Response.class);
 
-        if (clientResponse.getStatus() == HTTP_OK)
+        if (response.getStatus() == HTTP_OK)
         {
             return healthy("Ping was successful to %s", feedPingUrl);
         }
         else
         {
-            return unhealthy("Unhealthy with status %s", clientResponse.getStatus());
+            return unhealthy("Unhealthy with status %s", response.getStatus());
         }
     }
 

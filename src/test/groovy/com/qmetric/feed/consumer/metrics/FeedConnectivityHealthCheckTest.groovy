@@ -1,36 +1,36 @@
 package com.qmetric.feed.consumer.metrics
 
-import com.theoryinpractise.halbuilder.api.RepresentationFactory
-import org.glassfish.jersey.client.ClientResponse
+import com.squareup.okhttp.mockwebserver.MockResponse
+import com.squareup.okhttp.mockwebserver.rule.MockWebServerRule
+import org.apache.http.HttpHeaders
+import org.junit.ClassRule
+import spock.lang.Shared
 import spock.lang.Specification
 
-import javax.ws.rs.client.Client
-import javax.ws.rs.client.Invocation
-import javax.ws.rs.client.WebTarget
+import javax.ws.rs.client.ClientBuilder
+import javax.ws.rs.core.MediaType
 
 class FeedConnectivityHealthCheckTest extends Specification {
 
-    final client = Mock(Client)
+    @ClassRule @Shared
+    MockWebServerRule server = new MockWebServerRule()
 
-    final webTarget = Mock(WebTarget)
+    def healthCheck
 
-    final invocationBuilder = Mock(Invocation.Builder)
-
-    final response = Mock(ClientResponse)
-
-    final healthCheck = new FeedConnectivityHealthCheck("http://host:123/", client)
+    def response = new MockResponse().addHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_PLAIN)
 
     def setup()
     {
-        client.target("http://host:123/ping") >> webTarget
-        webTarget.request(RepresentationFactory.HAL_JSON) >> invocationBuilder
-        invocationBuilder.get(ClientResponse.class) >> response
+        healthCheck = new FeedConnectivityHealthCheck(
+                server.getUrl("/ping").toString(),
+                ClientBuilder.newClient())
     }
 
     def "should know when feed connectivity is healthy"()
     {
         given:
-        response.getStatus() >> 200
+        server.enqueue(response.setResponseCode(200)
+                .setBody("pong"))
 
         when:
         final result = healthCheck.check()
@@ -42,7 +42,8 @@ class FeedConnectivityHealthCheckTest extends Specification {
     def "should know when feed connectivity is unhealthy"()
     {
         given:
-        response.getStatus() >> 500
+        server.enqueue(response.setResponseCode(500)
+                .setBody("error"))
 
         when:
         final result = healthCheck.check()
