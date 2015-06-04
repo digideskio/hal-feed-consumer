@@ -1,5 +1,4 @@
 package com.qmetric.feed.consumer
-
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient

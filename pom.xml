@@ -55,7 +55,7 @@
         <dependency>
             <groupId>com.qmetric</groupId>
             <artifactId>halreader</artifactId>
-            <version>1.2</version>
+            <version>1.7</version>
         </dependency>
 
         <dependency>
@@ -72,8 +72,8 @@
 
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.4.4.1</version>
+            <artifactId>aws-java-sdk-simpledb</artifactId>
+            <version>1.9.39</version>
         </dependency>
 
         <dependency>
