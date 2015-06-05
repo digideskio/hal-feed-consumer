@@ -12,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 
 import static com.github.rholder.retry.StopStrategies.stopAfterAttempt;
 import static com.github.rholder.retry.WaitStrategies.fixedWait;
-import static com.qmetric.feed.consumer.Result.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class EntryConsumerImpl implements EntryConsumer
@@ -32,8 +31,11 @@ public class EntryConsumerImpl implements EntryConsumer
 
     private final Optional<Integer> maxRetries;
 
-    public EntryConsumerImpl(final FeedTracker feedTracker, final ConsumeAction consumeAction, final ResourceResolver resourceResolver,
-                             final Collection<EntryConsumerListener> listeners, final Optional<Integer> maxRetries)
+    public EntryConsumerImpl(final FeedTracker feedTracker,
+                             final ConsumeAction consumeAction,
+                             final ResourceResolver resourceResolver,
+                             final Collection<EntryConsumerListener> listeners,
+                             final Optional<Integer> maxRetries)
     {
         this.feedTracker = feedTracker;
         this.consumeAction = consumeAction;
@@ -71,7 +73,14 @@ public class EntryConsumerImpl implements EntryConsumer
             final Result result = consumeAction.consume(fetchFeedEntry(trackedEntry));
             if (result.failure())
             {
-                feedTracker.fail(trackedEntry, result.state == State.RETRY_UNSUCCESSFUL);
+                if (result.shouldRetry())
+                {
+                    markAsFailed(trackedEntry);
+                }
+                else
+                {
+                    markAsAborted(trackedEntry);
+                }
                 return false;
             }
             else
@@ -81,16 +90,26 @@ public class EntryConsumerImpl implements EntryConsumer
         }
         catch (final Throwable e)
         {
-            fail(trackedEntry);
+            markAsFailed(trackedEntry);
             throw new Exception(e);
         }
     }
 
-    private void fail(final TrackedEntry trackedEntry)
+    private void markAsFailed(final TrackedEntry trackedEntry)
     {
-        final boolean scheduleRetry = !maxRetries.isPresent() || maxRetries.get() > trackedEntry.retries;
+        boolean shouldRetry = hasReachedRetryLimit(trackedEntry);
+        feedTracker.fail(trackedEntry, shouldRetry);
+    }
 
-        feedTracker.fail(trackedEntry, scheduleRetry);
+    private void markAsAborted(final TrackedEntry trackedEntry)
+    {
+        boolean shouldRetry = false;
+        feedTracker.fail(trackedEntry, shouldRetry);
+    }
+
+    private boolean hasReachedRetryLimit(final TrackedEntry trackedEntry)
+    {
+        return !maxRetries.isPresent() || maxRetries.get() > trackedEntry.retries;
     }
 
     private FeedEntry fetchFeedEntry(final TrackedEntry trackedEntry)
@@ -102,7 +121,8 @@ public class EntryConsumerImpl implements EntryConsumer
     {
         RETRY_BUILDER.build().call(new Callable<Void>()
         {
-            @Override public Void call() throws Exception
+            @Override
+            public Void call() throws Exception
             {
                 feedTracker.markAsConsumed(trackedEntry.id);
                 return null;

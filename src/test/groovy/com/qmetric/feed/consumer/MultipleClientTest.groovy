@@ -15,6 +15,7 @@ import org.junit.Test
 
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.Semaphore
 
 import static com.qmetric.feed.consumer.DomainNameFactory.userPrefixedDomainName
 import static com.qmetric.feed.consumer.utils.TestEnvironment.accessKey
@@ -29,10 +30,14 @@ import static org.mockito.Mockito.mock
 
 class MultipleClientTest {
     private static final FEED_SIZE = 9
-    private static final String MARKER = 'throw-exception'
+    private static final String THIS_ENTRY_WILL_CAUSE_AN_EXCEPTION = 'throw-exception'
     private static AmazonSimpleDBClient client
     private static SimpleDBFeedTracker tracker
     private static final String DOMAIN_NAME = userPrefixedDomainName('hal-feed-consumer-test')
+
+    private final Semaphore slowConsumerStarted = new Semaphore(0)
+    private final Semaphore fastConsumerStarted = new Semaphore(0)
+
     private static final executor = Executors.newFixedThreadPool(2)
     private static final resolver = new ResourceResolver() {
         @Override HalResource resolve(final EntryId id)
@@ -65,7 +70,7 @@ class MultipleClientTest {
         def slowActionThread = runConsumerInOwnThreadWith(slowFaultyAction)
 
         println "Test waiting for ${slowFaultyAction} to pick up the first feed entry, before it fails and reverts it"
-        SECONDS.sleep(3)
+        waitSlowConsumerToBeRunningAndToBeWaitingForFastConsumerToStart()
         assertThat("${slowFaultyAction} is still consuming the first entry", tracker.countConsuming(), equalTo(1))
         assertThat("${slowFaultyAction} hasn't finished consuming the first entry", tracker.countConsumed(), equalTo(0))
 
@@ -78,8 +83,14 @@ class MultipleClientTest {
 
         println "Test running ${quickRunningAction} again to pick up entries that ${slowFaultyAction} failed to process"
         newConsumer(quickRunningAction).consume()
+        SECONDS.sleep(20)
 
         assertThat("all entries have been consumed", tracker.countConsumed(), equalTo(FEED_SIZE))
+    }
+
+    private void waitSlowConsumerToBeRunningAndToBeWaitingForFastConsumerToStart()
+    {
+        assertThat("the slow consumer was not started after waiting for 10 seconds", slowConsumerStarted.tryAcquire(10, SECONDS), equalTo(true))
     }
 
     private static Future<?> runConsumerInOwnThreadWith(ConsumeAction runnable)
@@ -121,7 +132,7 @@ class MultipleClientTest {
     private static void populateDomain()
     {
         (1..FEED_SIZE).each { int it ->
-            def entry = EntryId.of(it == 1 ? MARKER : "${it}")
+            def entry = EntryId.of(it == 1 ? THIS_ENTRY_WILL_CAUSE_AN_EXCEPTION : "${it}")
             tracker.track(entry)
         }
     }
@@ -132,13 +143,14 @@ class MultipleClientTest {
     }
 
 
-    private static slowFaultyAction = new ConsumeAction() {
+    private slowFaultyAction = new ConsumeAction() {
         @Override Result consume(final FeedEntry input)
         {
-            if (input.content.resourceLink.get().href.contains(MARKER))
+            if (input.content.resourceLink.get().href.contains(THIS_ENTRY_WILL_CAUSE_AN_EXCEPTION))
             {
                 println "hang-and-fail-action waiting 10 sec before failing on ${input.content.getResourceLink()}"
-                SECONDS.sleep(10)
+                slowConsumerStarted.release()
+                fastConsumerStarted.tryAcquire(10, SECONDS)
                 throw new RuntimeException()
             }
             else
@@ -150,9 +162,10 @@ class MultipleClientTest {
         }
     }
 
-    private static quickRunningAction = new ConsumeAction() {
+    private quickRunningAction = new ConsumeAction() {
         @Override Result consume(final FeedEntry input)
         {
+            fastConsumerStarted.release()
             println "quick-action consumed ${input.content.getResourceLink()}"
             Result.successful()
         }

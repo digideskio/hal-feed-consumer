@@ -59,6 +59,11 @@ public class Result
         return state != State.SUCCESSFUL;
     }
 
+    public boolean shouldRetry()
+    {
+        return state == State.RETRY_UNSUCCESSFUL;
+    }
+
     @Override public boolean equals(final Object obj)
     {
         return reflectionEquals(this, obj);
