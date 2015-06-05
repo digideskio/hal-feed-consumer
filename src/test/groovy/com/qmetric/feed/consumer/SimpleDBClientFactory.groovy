@@ -19,9 +19,8 @@ class SimpleDBClientFactory {
 
     public AmazonSimpleDBClient simpleDBClient()
     {
-        new AmazonSimpleDBClient(new BasicAWSCredentials(accessKey, secretKey)).with {
-            region = getRegion(Regions.EU_WEST_1)
-            it
-        }
+        final client = new AmazonSimpleDBClient(new BasicAWSCredentials(accessKey, secretKey))
+        client.setRegion(getRegion(Regions.EU_WEST_1))
+        return client
     }
 }

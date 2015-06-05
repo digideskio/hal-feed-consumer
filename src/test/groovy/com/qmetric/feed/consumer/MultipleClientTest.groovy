@@ -6,7 +6,7 @@ import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
 import com.qmetric.hal.reader.HalResource
-import com.theoryinpractise.halbuilder.api.RepresentationFactory
+import com.theoryinpractise.halbuilder.AbstractRepresentationFactory
 import com.theoryinpractise.halbuilder.impl.representations.MutableRepresentation
 import org.junit.After
 import org.junit.Before
@@ -37,7 +37,7 @@ class MultipleClientTest {
     private static final resolver = new ResourceResolver() {
         @Override HalResource resolve(final EntryId id)
         {
-            def representation = new HalResource(new ObjectMapper(), new MutableRepresentation(mock(RepresentationFactory), "/${id.toString()}"))
+            def representation = new HalResource(new ObjectMapper(), new MutableRepresentation(mock(AbstractRepresentationFactory), "/${id.toString()}"))
             return representation
         }
     }
