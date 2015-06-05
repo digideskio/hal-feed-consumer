@@ -1,4 +1,5 @@
 package com.qmetric.feed.consumer
+
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
@@ -18,9 +19,8 @@ class SimpleDBClientFactory {
 
     public AmazonSimpleDBClient simpleDBClient()
     {
-        new AmazonSimpleDBClient(new BasicAWSCredentials(accessKey, secretKey)).with {
-            region = getRegion(Regions.EU_WEST_1)
-            it
-        }
+        final client = new AmazonSimpleDBClient(new BasicAWSCredentials(accessKey, secretKey))
+        client.setRegion(getRegion(Regions.EU_WEST_1))
+        return client
     }
 }
