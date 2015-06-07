@@ -17,6 +17,11 @@ public class EntryId
         return new EntryId(id);
     }
 
+    public long asNumeric()
+    {
+        return Long.valueOf(id);
+    }
+
     @Override public boolean equals(final Object obj)
     {
         return reflectionEquals(this, obj);

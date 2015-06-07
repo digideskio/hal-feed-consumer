@@ -68,16 +68,26 @@ public class EntryConsumerImpl implements EntryConsumer
     {
         try
         {
-            final Result result = consumeAction.consume(fetchFeedEntry(trackedEntry));
-            if (result.failure())
-            {
-                feedTracker.fail(trackedEntry, result.state == State.RETRY_UNSUCCESSFUL);
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+            final FeedEntry feedEntry = fetchFeedEntry(trackedEntry);
+
+            // if entry exists
+                // process as normal
+
+                final Result result = consumeAction.consume(feedEntry);
+                if (result.failure())
+                {
+                    feedTracker.fail(trackedEntry, result.state == State.RETRY_UNSUCCESSFUL);
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            // else
+                // if (polling_interval * retries) > 1 minute
+                    // abort
+                // else
+                    // process as normal
         }
         catch (final Throwable e)
         {

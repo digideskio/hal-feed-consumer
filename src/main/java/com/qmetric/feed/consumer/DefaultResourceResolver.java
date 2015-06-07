@@ -1,7 +1,10 @@
 package com.qmetric.feed.consumer;
 
+import com.google.common.base.Optional;
 import com.qmetric.hal.reader.HalReader;
 import com.qmetric.hal.reader.HalResource;
+
+import java.io.Reader;
 
 import static java.lang.String.format;
 
