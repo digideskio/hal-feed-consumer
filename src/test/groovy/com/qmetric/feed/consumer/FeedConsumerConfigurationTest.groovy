@@ -1,4 +1,5 @@
 package com.qmetric.feed.consumer
+
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry

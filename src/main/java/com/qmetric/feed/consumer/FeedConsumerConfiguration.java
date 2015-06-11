@@ -52,6 +52,8 @@ public class FeedConsumerConfiguration
 
     private Interval pollingInterval;
 
+    private final Interval missingEntriesTimeout = new Interval(15, MINUTES);
+
     private Optional<PollingActivityHealthCheck> pollingActivityHealthCheck = Optional.absent();
 
     private ConsumeAction consumeAction;
@@ -209,12 +211,12 @@ public class FeedConsumerConfiguration
 
     private FeedConsumerScheduler buildConsumerScheduler()
     {
-        return new FeedConsumerScheduler(feedConsumer(), feedEntriesFinder(), pollingInterval, scheduledExecutorService, registerShutdownHook);
+        return new FeedConsumerScheduler(feedConsumer(), feedEntriesTracker(), pollingInterval, scheduledExecutorService, registerShutdownHook, feedUrl);
     }
 
-    private AvailableFeedEntriesFinder feedEntriesFinder()
+    private AvailableFeedEntriesTracker feedEntriesTracker()
     {
-        return new AvailableFeedEntriesFinder(feedEndpointFactory.create(feedUrl), feedEndpointFactory, feedTracker, earliestEntryLimit, halReader);
+        return new AvailableFeedEntriesTracker(feedEndpointFactory.create(feedUrl), feedEndpointFactory, feedTracker, halReader, new NonContiguousEntryIdTracker(feedTracker), new PageOfSeenEntriesFactory(feedTracker, earliestEntryLimit));
     }
 
     private FeedConsumer feedConsumer()
@@ -225,7 +227,7 @@ public class FeedConsumerConfiguration
 
     private EntryConsumerWithMetrics entryConsumer()
     {
-        return new EntryConsumerWithMetrics(name, metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries));
+        return new EntryConsumerWithMetrics(name, metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries, missingEntriesTimeout, new DateTimeSource()));
     }
 
     private ResourceResolver resourceResolver()

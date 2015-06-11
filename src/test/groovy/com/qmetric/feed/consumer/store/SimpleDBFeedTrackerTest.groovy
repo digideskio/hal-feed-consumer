@@ -1,9 +1,11 @@
 package com.qmetric.feed.consumer.store
+
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.simpledb.AmazonSimpleDB
 import com.amazonaws.services.simpledb.model.*
 import com.qmetric.feed.consumer.DateTimeSource
 import com.qmetric.feed.consumer.EntryId
+import com.qmetric.feed.consumer.SeenEntry
 import com.qmetric.feed.consumer.TrackedEntry
 import org.joda.time.DateTime
 import spock.lang.Specification
@@ -23,6 +25,8 @@ class SimpleDBFeedTrackerTest extends Specification {
 
     private static final CURRENT_DATE_STRING = "2014/01/10 12:00:00"
 
+    private static final CURRENT_DATE = new DateTime(2014, 1, 10, 12, 0, 0, 0)
+
     final domain = anyNonEmptyString()
 
     final feedEntryId = EntryId.of(anyNonEmptyString())
@@ -34,7 +38,7 @@ class SimpleDBFeedTrackerTest extends Specification {
     final consumedEntryStore = new SimpleDBFeedTracker(simpleDBClient, domain, dateTimeSource)
 
     def setup() {
-        dateTimeSource.now() >> new DateTime(2014, 1, 10, 12, 0, 0, 0)
+        dateTimeSource.now() >> CURRENT_DATE
     }
 
     def "should store entry with consuming state only if not already consuming"()
@@ -72,7 +76,7 @@ class SimpleDBFeedTrackerTest extends Specification {
     def 'fail should increment fail count and remove "consuming" attribute'()
     {
         when:
-        consumedEntryStore.fail(new TrackedEntry(feedEntryId, initial_count), true)
+        consumedEntryStore.fail(new TrackedEntry(feedEntryId, CURRENT_DATE, initial_count), true)
 
         then: 'increment failures count and update seen_at date'
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest it ->
@@ -108,7 +112,7 @@ class SimpleDBFeedTrackerTest extends Specification {
         final expectedAbortedAttribute = new ReplaceableAttribute("aborted", CURRENT_DATE_STRING, true)
 
         when:
-        consumedEntryStore.fail(new TrackedEntry(feedEntryId, 0), false)
+        consumedEntryStore.fail(new TrackedEntry(feedEntryId, CURRENT_DATE, 0), false)
 
         then: 'increment failures count and update seen_at date'
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest it ->
@@ -140,16 +144,19 @@ class SimpleDBFeedTrackerTest extends Specification {
         }
     }
 
-    def 'should add new entry with "seen_at" attribute'()
+    def 'should add expected attributes when tracking'()
     {
+        given:
+        final dateTime = new DateTime(2015, 5, 1, 12, 0, 0, 0)
+
         when:
-        consumedEntryStore.track(feedEntryId)
+        consumedEntryStore.track(new SeenEntry(feedEntryId, dateTime))
 
         then:
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest r ->
             assert r.itemName == feedEntryId.toString()
-            def attribute = r.attributes.get(0)
-            assert attribute.name == "seen_at"
+            assert r.attributes.get(0) == new ReplaceableAttribute("created", "2015/05/01 12:00:00", false)
+            assert r.attributes.get(1) == new ReplaceableAttribute("seen_at", "2015/05/01 12:00:00", true)
         }
     }
 

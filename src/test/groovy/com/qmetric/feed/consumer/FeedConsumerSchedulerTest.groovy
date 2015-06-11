@@ -12,9 +12,9 @@ class FeedConsumerSchedulerTest extends Specification {
     final scheduledExecutionService = Mock(ScheduledExecutorService)
 
     final consumer = Mock(FeedConsumerImpl)
-    final finder = Mock(AvailableFeedEntriesFinder)
+    final tracker = Mock(AvailableFeedEntriesTracker)
 
-    final scheduler = new FeedConsumerScheduler(consumer, finder, interval, scheduledExecutionService, true)
+    final scheduler = new FeedConsumerScheduler(consumer, tracker, interval, scheduledExecutionService, true, "http://localhost/feed")
 
     def "should periodically consume feed"()
     {
@@ -43,7 +43,7 @@ class FeedConsumerSchedulerTest extends Specification {
         scheduler.updateTracker()
 
         then:
-        1 * finder.trackNewEntries() >> { throw new Exception() }
+        1 * tracker.trackNewEntries() >> { throw new Exception() }
         notThrown(Exception)
     }
 }

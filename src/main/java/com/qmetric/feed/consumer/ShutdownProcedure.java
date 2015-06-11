@@ -12,7 +12,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 class ShutdownProcedure implements Runnable
 {
-    private static final Logger log = LoggerFactory.getLogger(ShutdownProcedure.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ShutdownProcedure.class);
 
     private static final int TIMEOUT = 90;
 
@@ -38,16 +38,16 @@ class ShutdownProcedure implements Runnable
 
     @Override public void run()
     {
-        log.info("Shutdown started");
+        LOG.info("Shutdown started");
         if (!executorService.isTerminated())
         {
             terminateExecutor();
         }
         else
         {
-            log.info("executor-service is already terminated");
+            LOG.info("executor-service is already terminated");
         }
-        log.info("Shutdown completed");
+        LOG.info("Shutdown completed");
     }
 
     public void runAndRemoveHook()
@@ -71,34 +71,34 @@ class ShutdownProcedure implements Runnable
 
     private void stopAcceptingNewJobs()
     {
-        log.info("No new jobs accepted");
+        LOG.info("No new jobs accepted");
         if (!executorService.isShutdown())
         {
             executorService.shutdown();
         }
         else
         {
-            log.info("executor-service is already shutdown");
+            LOG.info("executor-service is already shutdown");
         }
     }
 
     private void waitRunningJobsToTerminate() throws InterruptedException
     {
-        log.info("Terminating all executor-service jobs. Timeout is {} {}", TIMEOUT, SECONDS);
+        LOG.info("Terminating all executor-service jobs. Timeout is {} {}", TIMEOUT, SECONDS);
         if (executorService.awaitTermination(TIMEOUT, SECONDS))
         {
-            log.info("All jobs terminated normally");
+            LOG.info("All jobs terminated normally");
         }
         else
         {
-            log.warn("Running jobs did not complete within timeout. Forcing shutdown.");
+            LOG.warn("Running jobs did not complete within timeout. Forcing shutdown.");
             executorService.shutdownNow();
         }
     }
 
     private void forceShutdown()
     {
-        log.warn("Shutdown thread was interrupted. Forcing executor shutdown.");
+        LOG.warn("Shutdown thread was interrupted. Forcing executor shutdown.");
         executorService.shutdownNow();
         // Preserve interrupt status
         currentThread().interrupt();

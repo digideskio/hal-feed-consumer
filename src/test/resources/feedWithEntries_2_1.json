@@ -9,20 +9,20 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfAnotherAlreadyConsumed"
+                        "href": "http://feed/2"
                     }
                 },
-                "_id": "idOfAnotherAlreadyConsumed",
-                "_published": "22/05/2013 00:00:00"
+                "_id": "2",
+                "_published": "24/05/2013 00:00:00"
             },
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfAlreadyConsumed"
+                        "href": "http://feed/1"
                     }
                 },
-                "_id": "idOfalreadyConsumed",
-                "_published": "22/05/2013 00:00:00"
+                "_id": "1",
+                "_published": "23/05/2013 00:00:00"
             }
         ]
     }

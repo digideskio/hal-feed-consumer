@@ -1,18 +1,23 @@
 package com.qmetric.feed.consumer
+
 import com.google.common.base.Optional
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.qmetric.hal.reader.HalResource
+import org.joda.time.DateTime
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
+import static com.google.common.base.Optional.absent
+import static java.util.concurrent.TimeUnit.MINUTES
 
 class EntryConsumerImplTest extends Specification {
 
     private static final int MAX_RETRIES = 10
 
     private static final int RETRIES = 1
+
+    private static final Interval MISSING_ENTRY_TIMEOUT = new Interval(15, MINUTES)
 
     final consumeAction = Mock(ConsumeAction)
 
@@ -22,20 +27,26 @@ class EntryConsumerImplTest extends Specification {
 
     final listener = Mock(EntryConsumerListener)
 
-    final consumer = new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, [listener], Optional.of(MAX_RETRIES))
+    final dateTimeSource = Mock(DateTimeSource)
 
-    def entry = new TrackedEntry(EntryId.of(anyString()), RETRIES)
+    final consumer = new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver, [listener], Optional.of(MAX_RETRIES), MISSING_ENTRY_TIMEOUT, dateTimeSource)
+
+    final dateTime = DateTime.now()
+
+    def entry = new TrackedEntry(EntryId.of("1"), dateTime, RETRIES)
 
     def resource = Mock(HalResource)
 
     def "should consume entry"()
     {
+        given:
+        resourceResolver.resolve(_ as EntryId) >> Optional.of(resource)
+
         when:
         consumer.consume(entry)
 
         then:
         1 * feedTracker.markAsConsuming(entry.id)
-        1 * resourceResolver.resolve(entry.id) >> resource
         1 * consumeAction.consume(new FeedEntry(resource, RETRIES)) >> Result.successful()
         1 * feedTracker.markAsConsumed(entry.id)
     }
@@ -43,13 +54,14 @@ class EntryConsumerImplTest extends Specification {
     def "should use failure result from consumption to determine whether to retry"()
     {
         given:
+        resourceResolver.resolve(_ as EntryId) >> Optional.of(resource)
         consumeAction.consume(_) >> result
 
         when:
         consumer.consume(entry)
 
         then:
-        1 * feedTracker.fail(_, shouldRetry)
+        1 * feedTracker.fail(_ as TrackedEntry, shouldRetry)
         0 * feedTracker.markAsConsumed(entry.id)
         0 * listener.consumed(entry.id)
 
@@ -61,6 +73,9 @@ class EntryConsumerImplTest extends Specification {
 
     def "should not consume entry if already being consumed by another consumer"()
     {
+        given:
+        resourceResolver.resolve(_ as EntryId) >> Optional.of(resource)
+
         when:
         consumer.consume(entry)
 
@@ -73,8 +88,11 @@ class EntryConsumerImplTest extends Specification {
 
     @Unroll def "should mark entry as failed if error occurs whilst consuming entry (mark fail should also revert consuming)"()
     {
+        given:
+        resourceResolver.resolve(_ as EntryId) >> Optional.of(resource)
+
         when:
-        consumer.consume(new TrackedEntry(EntryId.of(anyString()), retries))
+        consumer.consume(new TrackedEntry(EntryId.of("1"), dateTime, retries))
 
         then:
         1 * consumeAction.consume(_) >> { throw new Exception() }
@@ -92,21 +110,23 @@ class EntryConsumerImplTest extends Specification {
     def "should retry to set consumed state on error"()
     {
         given:
+        resourceResolver.resolve(_ as EntryId) >> Optional.of(resource)
         consumeAction.consume(_) >> Result.successful()
 
         when:
         consumer.consume(entry)
 
         then:
-        1 * feedTracker.markAsConsumed(_) >> { throw new Exception() }
+        1 * feedTracker.markAsConsumed(_ as EntryId) >> { throw new Exception() }
 
         then:
-        1 * feedTracker.markAsConsumed(_)
+        1 * feedTracker.markAsConsumed(_ as EntryId)
     }
 
     def "should notify listeners on consuming entry"()
     {
         given:
+        resourceResolver.resolve(_ as EntryId) >> Optional.of(resource)
         consumeAction.consume(_) >> Result.successful()
 
         when:
@@ -114,5 +134,30 @@ class EntryConsumerImplTest extends Specification {
 
         then:
         1 * listener.consumed(entry.id)
+    }
+
+    @Unroll def "should abort/retry when tracked entry does not exist in feed (entry might not exist temporarily during high load on feed-server)"()
+    {
+        given:
+        dateTimeSource.now() >> currentDate
+        final entry = new TrackedEntry(EntryId.of("1"), trackingDate, 0)
+        resourceResolver.resolve(_ as EntryId) >> absent()
+
+        when:
+        consumer.consume(entry)
+
+        then:
+        1 * feedTracker.markAsConsuming(entry.id)
+        0 * consumeAction.consume(new FeedEntry(resource, RETRIES)) >> Result.successful()
+        0 * feedTracker.markAsConsumed(entry.id)
+        1 * feedTracker.fail(entry, scheduleRetryForMissingEntry)
+
+        where:
+        currentDate                               | trackingDate                           | scheduleRetryForMissingEntry
+        new DateTime(2015, 5, 1, 12, 15, 0, 0)    | new DateTime(2015, 5, 1, 12, 15, 0, 0) | true
+        new DateTime(2015, 5, 1, 12, 29, 59, 999) | new DateTime(2015, 5, 1, 12, 15, 0, 0) | true
+        new DateTime(2015, 5, 1, 12, 30, 0, 0)    | new DateTime(2015, 5, 1, 12, 15, 0, 0) | false
+        new DateTime(2015, 5, 1, 12, 30, 0, 1)    | new DateTime(2015, 5, 1, 12, 15, 0, 0) | false
+        new DateTime(2015, 5, 1, 12, 30, 0, 0)    | null                                   | false
     }
 }

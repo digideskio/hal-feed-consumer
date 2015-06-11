@@ -8,6 +8,7 @@ import com.qmetric.feed.consumer.utils.SimpleDBUtils
 import com.qmetric.hal.reader.HalResource
 import com.theoryinpractise.halbuilder.AbstractRepresentationFactory
 import com.theoryinpractise.halbuilder.impl.representations.MutableRepresentation
+import org.joda.time.DateTime
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -17,11 +18,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
 import static com.qmetric.feed.consumer.DomainNameFactory.userPrefixedDomainName
-import static com.qmetric.feed.consumer.utils.TestEnvironment.accessKey
-import static com.qmetric.feed.consumer.utils.TestEnvironment.secretKey
-import static com.qmetric.feed.consumer.utils.TestEnvironment.verifyEnvironment
+import static com.qmetric.feed.consumer.utils.TestEnvironment.*
 import static java.lang.Thread.currentThread
 import static java.util.Collections.emptyList
+import static java.util.concurrent.TimeUnit.MINUTES
 import static java.util.concurrent.TimeUnit.SECONDS
 import static org.hamcrest.core.IsEqual.equalTo
 import static org.junit.Assert.assertThat
@@ -29,16 +29,16 @@ import static org.mockito.Mockito.mock
 
 class MultipleClientTest {
     private static final FEED_SIZE = 9
-    private static final String MARKER = 'throw-exception'
+    private static final String FAILING_ENTRY_ID = '1'
     private static AmazonSimpleDBClient client
     private static SimpleDBFeedTracker tracker
     private static final String DOMAIN_NAME = userPrefixedDomainName('hal-feed-consumer-test')
     private static final executor = Executors.newFixedThreadPool(2)
     private static final resolver = new ResourceResolver() {
-        @Override HalResource resolve(final EntryId id)
+        @Override Optional<HalResource> resolve(final EntryId id)
         {
             def representation = new HalResource(new ObjectMapper(), new MutableRepresentation(mock(AbstractRepresentationFactory), "/${id.toString()}"))
-            return representation
+            return Optional.of(representation)
         }
     }
 
@@ -103,7 +103,7 @@ class MultipleClientTest {
 
     private static FeedConsumer newConsumer(ConsumeAction action)
     {
-        def entryConsumer = new EntryConsumerImpl(tracker, action, resolver, emptyList(), Optional.absent())
+        def entryConsumer = new EntryConsumerImpl(tracker, action, resolver, emptyList(), Optional.absent(), new Interval(15, MINUTES), new DateTimeSource())
         new FeedConsumerImpl(entryConsumer, tracker, emptyList())
     }
 
@@ -121,8 +121,8 @@ class MultipleClientTest {
     private static void populateDomain()
     {
         (1..FEED_SIZE).each { int it ->
-            def entry = EntryId.of(it == 1 ? MARKER : "${it}")
-            tracker.track(entry)
+            def entry = EntryId.of(it == 1 ? FAILING_ENTRY_ID : "${it}")
+            tracker.track(new SeenEntry(entry, DateTime.now()))
         }
     }
 
@@ -131,11 +131,10 @@ class MultipleClientTest {
         new SimpleDBUtils(client).createDomainAndWait(DOMAIN_NAME)
     }
 
-
     private static slowFaultyAction = new ConsumeAction() {
         @Override Result consume(final FeedEntry input)
         {
-            if (input.content.resourceLink.get().href.contains(MARKER))
+            if (input.content.resourceLink.get().href.contains(FAILING_ENTRY_ID))
             {
                 println "hang-and-fail-action waiting 10 sec before failing on ${input.content.getResourceLink()}"
                 SECONDS.sleep(10)

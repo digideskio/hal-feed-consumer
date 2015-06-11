@@ -5,6 +5,9 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.google.common.base.Optional;
 import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.FeedTracker;
+import com.qmetric.hal.reader.HalResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.concurrent.Callable;
@@ -17,6 +20,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class EntryConsumerImpl implements EntryConsumer
 {
+    private static final Logger LOG = LoggerFactory.getLogger(EntryConsumerImpl.class);
+
     private static final RetryerBuilder<Void> RETRY_BUILDER = RetryerBuilder.<Void>newBuilder() //
             .retryIfException() //
             .withWaitStrategy(fixedWait(1, SECONDS)) //
@@ -32,14 +37,21 @@ public class EntryConsumerImpl implements EntryConsumer
 
     private final Optional<Integer> maxRetries;
 
+    private final Interval timeoutForMissingEntries;
+
+    private final DateTimeSource dateTimeSource;
+
     public EntryConsumerImpl(final FeedTracker feedTracker, final ConsumeAction consumeAction, final ResourceResolver resourceResolver,
-                             final Collection<EntryConsumerListener> listeners, final Optional<Integer> maxRetries)
+                             final Collection<EntryConsumerListener> listeners, final Optional<Integer> maxRetries, final Interval timeoutForMissingEntries,
+                             final DateTimeSource dateTimeSource)
     {
         this.feedTracker = feedTracker;
         this.consumeAction = consumeAction;
         this.resourceResolver = resourceResolver;
         this.listeners = listeners;
         this.maxRetries = maxRetries;
+        this.timeoutForMissingEntries = timeoutForMissingEntries;
+        this.dateTimeSource = dateTimeSource;
     }
 
     @Override
@@ -68,15 +80,26 @@ public class EntryConsumerImpl implements EntryConsumer
     {
         try
         {
-            final Result result = consumeAction.consume(fetchFeedEntry(trackedEntry));
-            if (result.failure())
+            final Optional<FeedEntry> feedEntry = fetchFeedEntry(trackedEntry);
+
+            if (feedEntry.isPresent())
             {
-                feedTracker.fail(trackedEntry, result.state == State.RETRY_UNSUCCESSFUL);
-                return false;
+                final Result result = consumeAction.consume(feedEntry.get());
+                if (result.failure())
+                {
+                    feedTracker.fail(trackedEntry, result.state == State.RETRY_UNSUCCESSFUL);
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
             }
             else
             {
-                return true;
+                LOG.info("tracked feed entry {} not found in feed - ignoring as tracker assumes some entries exist when non-contiguous feed entry ids", trackedEntry);
+                feedTracker.fail(trackedEntry, scheduleRetryToConsumeMissingEntry(trackedEntry));
+                return false;
             }
         }
         catch (final Throwable e)
@@ -86,6 +109,11 @@ public class EntryConsumerImpl implements EntryConsumer
         }
     }
 
+    private boolean scheduleRetryToConsumeMissingEntry(final TrackedEntry trackedEntry)
+    {
+        return trackedEntry.created != null && dateTimeSource.now().isBefore(trackedEntry.created.plus(timeoutForMissingEntries.asMillis()));
+    }
+
     private void fail(final TrackedEntry trackedEntry)
     {
         final boolean scheduleRetry = !maxRetries.isPresent() || maxRetries.get() > trackedEntry.retries;
@@ -93,9 +121,10 @@ public class EntryConsumerImpl implements EntryConsumer
         feedTracker.fail(trackedEntry, scheduleRetry);
     }
 
-    private FeedEntry fetchFeedEntry(final TrackedEntry trackedEntry)
+    private Optional<FeedEntry> fetchFeedEntry(final TrackedEntry trackedEntry)
     {
-        return new FeedEntry(resourceResolver.resolve(trackedEntry.id), trackedEntry.retries);
+        final Optional<HalResource> resolved = resourceResolver.resolve(trackedEntry.id);
+        return resolved.isPresent() ? Optional.of(new FeedEntry(resolved.get(), trackedEntry.retries)) : Optional.<FeedEntry>absent();
     }
 
     private void markAsConsumed(final TrackedEntry trackedEntry) throws ExecutionException, RetryException

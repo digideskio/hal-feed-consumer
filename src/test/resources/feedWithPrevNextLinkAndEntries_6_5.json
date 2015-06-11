@@ -3,6 +3,9 @@
         "self": {
             "href": "http://feed"
         },
+        "previous": {
+            "href": "http://feed/nextEntries"
+        },
         "next": {
             "href": "http://feed/nextEntries"
         }
@@ -12,20 +15,20 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfNewestUnconsumed"
+                        "href": "http://feed/6"
                     }
                 },
-                "_id": "idOfNewestUnconsumed",
-                "_published": "26/05/2013 13:00:00"
+                "_id": "6",
+                "_published": "25/05/2013 13:00:00"
             },
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfNewerUnconsumed"
+                        "href": "http://feed/5"
                     }
                 },
-                "_id": "idOfNewerUnconsumed",
-                "_published": "26/05/2013 00:00:00"
+                "_id": "5",
+                "_published": "25/05/2013 00:00:00"
             }
         ]
     }

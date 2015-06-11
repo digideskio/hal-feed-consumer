@@ -9,7 +9,6 @@ import spock.lang.Unroll
 
 import static java.util.concurrent.TimeUnit.MINUTES
 import static java.util.concurrent.TimeUnit.SECONDS
-import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
 
 class PollingActivityHealthCheckTest extends Specification {
 
@@ -34,7 +33,7 @@ class PollingActivityHealthCheckTest extends Specification {
         dateTimeSource.now() >>> [lastConsumedDate, currentDate]
 
         when:
-        healthCheck.consumed(EntryId.of(anyString()))
+        healthCheck.consumed(EntryId.of("1"))
 
         then:
         healthCheck.check().isHealthy() == expectedHealthyResult

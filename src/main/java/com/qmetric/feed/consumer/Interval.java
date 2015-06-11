@@ -20,6 +20,11 @@ public class Interval
         this.unit = unit;
     }
 
+    public long asMillis()
+    {
+        return TimeUnit.MILLISECONDS.convert(time, unit);
+    }
+
     @Override
     public boolean equals(final Object obj)
     {

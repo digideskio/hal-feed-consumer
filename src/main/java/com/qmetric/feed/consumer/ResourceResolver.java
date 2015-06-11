@@ -1,8 +1,9 @@
 package com.qmetric.feed.consumer;
 
+import com.google.common.base.Optional;
 import com.qmetric.hal.reader.HalResource;
 
 public interface ResourceResolver
 {
-    HalResource resolve(EntryId id);
+    Optional<HalResource> resolve(EntryId id);
 }

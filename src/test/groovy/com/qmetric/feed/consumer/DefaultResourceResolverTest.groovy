@@ -3,6 +3,7 @@ package com.qmetric.feed.consumer
 import com.qmetric.hal.reader.HalReader
 import com.qmetric.hal.reader.HalResource
 import spock.lang.Specification
+import com.google.common.base.Optional
 
 class DefaultResourceResolverTest extends Specification {
 
@@ -22,8 +23,8 @@ class DefaultResourceResolverTest extends Specification {
         when:
         def result = resolver.resolve(EntryId.of("1"))
         then:
-        1 * endpointFactory.create(_ as String) >> Mock(FeedEndpoint) { it.get() >> reader }
+        1 * endpointFactory.create(_ as String) >> Mock(FeedEndpoint) { it.get() >> Optional.of(reader) }
         1 * halReader.read(reader) >> resource
-        result == resource
+        result == Optional.of(resource)
     }
 }

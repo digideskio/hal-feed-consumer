@@ -7,23 +7,17 @@ import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.MockEntryHandler
 import com.qmetric.feed.consumer.utils.MockFeedHandler
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
-import com.theoryinpractise.halbuilder.api.ReadableRepresentation
 import org.junit.BeforeClass
 import org.junit.Test
 import spark.Spark
 
 import static com.qmetric.feed.consumer.DomainNameFactory.userPrefixedDomainName
-import static com.qmetric.feed.consumer.utils.TestEnvironment.accessKey
-import static com.qmetric.feed.consumer.utils.TestEnvironment.secretKey
-import static com.qmetric.feed.consumer.utils.TestEnvironment.verifyEnvironment
+import static com.qmetric.feed.consumer.utils.TestEnvironment.*
 import static java.util.concurrent.TimeUnit.SECONDS
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.mockito.Matchers.any
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.times
-import static org.mockito.Mockito.verify
-import static org.mockito.Mockito.when
+import static org.mockito.Mockito.*
 
 class IntegrationTest {
     private static final FEED_SIZE = 9
@@ -67,7 +61,7 @@ class IntegrationTest {
         consumer.start()
         waitConsumerToRunOnce(consumer)
         consumer.stop()
-        verify(action, times(FEED_SIZE)).consume(any(ReadableRepresentation))
+        verify(action, times(FEED_SIZE)).consume(any(FeedEntry))
         def result = simpleDBUtils.select("select * from `${DOMAIN_NAME}`")
         assertThat(result.items.size(), equalTo(FEED_SIZE))
         result.items.each { Item it ->

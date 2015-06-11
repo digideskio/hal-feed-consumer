@@ -21,6 +21,7 @@ class FeedEndpointTest extends Specification {
         def invocationBuilder = Mock(Invocation.Builder)
         def response = Mock(Response)
         def feedEndpoint = new FeedEndpoint(target)
+        response.getStatus() >> OK.statusCode
 
         when:
         final reader = feedEndpoint.get()
@@ -29,8 +30,23 @@ class FeedEndpointTest extends Specification {
         1 * target.request("application/hal+json") >> invocationBuilder
         1 * invocationBuilder.get() >> response
         1 * response.readEntity(InputStream) >> inputStream
-        1 * response.getStatus() >> OK.statusCode
-        expectedString == toString(reader)
+        expectedString == toString(reader.get())
+    }
+
+    def 'should return nothing when feed entry does not exist'()
+    {
+        given:
+        def target = Mock(WebTarget) { t ->
+            t.request(_) >> Mock(Invocation.Builder) { Invocation.Builder b ->
+                b.get() >> Mock(Response) { Response r -> //
+                    r.getStatus() >> NOT_FOUND.statusCode
+                    r.readEntity(String.class) >> "Feed entry not found" }
+            }
+        }
+        def endpoint = new FeedEndpoint(target)
+
+        expect:
+        !endpoint.get().isPresent()
     }
 
     def 'throws exception when http request fails'()
@@ -46,9 +62,8 @@ class FeedEndpointTest extends Specification {
 
         when:
         endpoint.get()
+
         then:
-        def e = thrown(IllegalStateException)
-        e.message.contains(NOT_FOUND.reasonPhrase)
-        e.message.contains(NOT_FOUND.statusCode as String)
+        thrown(IllegalStateException)
     }
 }

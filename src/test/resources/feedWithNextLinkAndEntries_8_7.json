@@ -12,20 +12,20 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfMiddlePageUnconsumed"
+                        "href": "http://feed/8"
                     }
                 },
-                "_id": "idOfNewestUnconsumed",
-                "_published": "25/05/2013 13:00:00"
+                "_id": "8",
+                "_published": "26/05/2013 13:00:00"
             },
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfAnotherMiddlePageUnconsumed"
+                        "href": "http://feed/7"
                     }
                 },
-                "_id": "idOfOldestUnconsumed",
-                "_published": "25/05/2013 00:00:00"
+                "_id": "7",
+                "_published": "26/05/2013 00:00:00"
             }
         ]
     }

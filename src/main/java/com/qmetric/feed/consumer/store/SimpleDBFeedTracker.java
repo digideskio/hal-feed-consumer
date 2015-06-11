@@ -18,7 +18,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.qmetric.feed.consumer.DateTimeSource;
 import com.qmetric.feed.consumer.EntryId;
+import com.qmetric.feed.consumer.SeenEntry;
 import com.qmetric.feed.consumer.TrackedEntry;
+import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -41,6 +43,8 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private static final String FAILURES_COUNT = "failures_count";
 
+    private static final String CREATED = "created";
+
     private static final String SEEN_AT = "seen_at";
 
     private static final String ABORTED = "aborted";
@@ -54,23 +58,34 @@ public class SimpleDBFeedTracker implements FeedTracker
                                                               "order by `" + SEEN_AT + "` ASC " +
                                                               "limit " + MAX_RESULTS_ALLOWED_BY_SDB;
 
+    private static final UpdateCondition IF_NOT_ALREADY_SEEN = new UpdateCondition().withName(SEEN_AT).withExists(false);
+
     private static final UpdateCondition IF_NOT_ALREADY_CONSUMING = new UpdateCondition().withName(CONSUMING_DATE_ATTR).withExists(false);
 
     private static final Function<Item, TrackedEntry> ITEM_TO_ENTRY = new Function<Item, TrackedEntry>()
     {
         @Override public TrackedEntry apply(final Item item)
         {
-            final Optional<Attribute> failuresCountAttribute = from(item.getAttributes()).firstMatch(IS_FAILURE_COUNT);
+            final Optional<Attribute> failuresCountAttribute = from(item.getAttributes()).firstMatch(IS_FAILURE_COUNT_ATTR);
+            final Optional<Attribute> createdAttribute = from(item.getAttributes()).firstMatch(IS_CREATED_ATTR);
 
-            return new TrackedEntry(EntryId.of(item.getName()), failuresCountAttribute.isPresent() ? Integer.valueOf(failuresCountAttribute.get().getValue()) : 0);
+            return new TrackedEntry(EntryId.of(item.getName()), createdAttribute.isPresent() ? parseDateTime(createdAttribute.get().getValue()) : null, failuresCountAttribute.isPresent() ? Integer.valueOf(failuresCountAttribute.get().getValue()) : 0);
         }
     };
 
-    private static final Predicate<Attribute> IS_FAILURE_COUNT = new Predicate<Attribute>()
+    private static final Predicate<Attribute> IS_FAILURE_COUNT_ATTR = new Predicate<Attribute>()
     {
         @Override public boolean apply(final Attribute input)
         {
             return FAILURES_COUNT.equals(input.getName());
+        }
+    };
+
+    private static final Predicate<Attribute> IS_CREATED_ATTR = new Predicate<Attribute>()
+    {
+        @Override public boolean apply(final Attribute input)
+        {
+            return CREATED.equals(input.getName());
         }
     };
 
@@ -150,20 +165,31 @@ public class SimpleDBFeedTracker implements FeedTracker
         run(putRequest(id, withCurrentDate(CONSUMED_DATE_ATTR)));
     }
 
-    @Override public boolean isTracked(final EntryId feedEntry)
+    @Override public boolean isTracked(final EntryId id)
     {
-        return getEntry(feedEntry).isPresent();
+        return getEntry(id).isPresent();
     }
 
-    @Override public void track(final EntryId id)
+    @Override public void track(final SeenEntry entry)
     {
-        final ReplaceableAttribute seen_at = buildTrackingAttribute();
-        run(putRequest(id, seen_at));
+        final ReplaceableAttribute created = buildCreatedAttribute(entry.dateTime);
+        final ReplaceableAttribute seenAt = buildTrackingAttribute(entry.dateTime);
+        run(putRequest(entry.id, IF_NOT_ALREADY_SEEN, created, seenAt));
     }
 
     private ReplaceableAttribute buildTrackingAttribute()
     {
-        return new ReplaceableAttribute().withName(SEEN_AT).withValue(currentDate()).withReplace(true);
+        return buildTrackingAttribute(dateTimeSource.now());
+    }
+
+    private ReplaceableAttribute buildTrackingAttribute(final DateTime dateTime)
+    {
+        return new ReplaceableAttribute().withName(SEEN_AT).withValue(formatDate(dateTime)).withReplace(true);
+    }
+
+    private ReplaceableAttribute buildCreatedAttribute(final DateTime dateTime)
+    {
+        return new ReplaceableAttribute().withName(CREATED).withValue(formatDate(dateTime)).withReplace(false);
     }
 
     private void revertConsuming(final EntryId id)
@@ -270,6 +296,16 @@ public class SimpleDBFeedTracker implements FeedTracker
 
     private String currentDate()
     {
-        return DATE_FORMATTER.print(dateTimeSource.now());
+        return formatDate(dateTimeSource.now());
+    }
+
+    private String formatDate(final DateTime dateTime)
+    {
+        return DATE_FORMATTER.print(dateTime);
+    }
+
+    private static DateTime parseDateTime(final String dateTimeStr)
+    {
+        return DATE_FORMATTER.parseDateTime(dateTimeStr);
     }
 }

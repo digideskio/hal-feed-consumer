@@ -2,6 +2,9 @@
     "_links": {
         "self": {
             "href": "http://feed"
+        },
+        "previous": {
+            "href": "http://feed/nextEntries"
         }
     },
     "_embedded": {
@@ -9,37 +12,37 @@
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfNewUnconsumed"
+                        "href": "http://feed/4"
                     }
                 },
-                "_id": "idOfNewUnconsumed",
+                "_id": "4",
                 "_published": "24/05/2013 00:00:00"
             },
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfOldConsumed"
+                        "href": "http://feed/3"
                     }
                 },
-                "_id": "idOfOldestUnconsumed",
+                "_id": "3",
                 "_published": "23/05/2013 00:00:00"
             },
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfAnotherAlreadyConsumed"
+                        "href": "http://feed/2"
                     }
                 },
-                "_id": "idOfAnotherAlreadyConsumed",
+                "_id": "2",
                 "_published": "22/05/2013 00:00:00"
             },
             {
                 "_links": {
                     "self": {
-                        "href": "http://feed/idOfAlreadyConsumed"
+                        "href": "http://feed/1"
                     }
                 },
-                "_id": "idOfalreadyConsumed",
+                "_id": "1",
                 "_published": "22/05/2013 00:00:00"
             }
         ]

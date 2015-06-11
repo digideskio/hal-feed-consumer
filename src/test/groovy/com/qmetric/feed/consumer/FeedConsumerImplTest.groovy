@@ -1,11 +1,13 @@
 package com.qmetric.feed.consumer
+
 import com.qmetric.feed.consumer.store.AlreadyConsumingException
 import com.qmetric.feed.consumer.store.FeedTracker
+import org.joda.time.DateTime
 import spock.lang.Specification
 
-import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyString
-
 class FeedConsumerImplTest extends Specification {
+
+    static final dateTime = DateTime.now()
 
     final entryConsumer = Mock(EntryConsumer)
 
@@ -72,6 +74,6 @@ class FeedConsumerImplTest extends Specification {
 
     private static TrackedEntry anyEntry()
     {
-        new TrackedEntry(EntryId.of(anyString()), 1)
+        new TrackedEntry(EntryId.of("1"), dateTime, 1)
     }
 }

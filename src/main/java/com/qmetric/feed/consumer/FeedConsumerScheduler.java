@@ -3,7 +3,6 @@ package com.qmetric.feed.consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,24 +18,23 @@ public class FeedConsumerScheduler
 
     private final boolean registerShutdownHook;
 
-    private final AvailableFeedEntriesFinder feedEntriesFinder;
+    private final String feedUrl;
+
+    private final AvailableFeedEntriesTracker feedEntriesTracker;
 
     private final AtomicInteger invocationCounter = new AtomicInteger(0);
 
     private ShutdownProcedure shutdownProcedure;
 
-    public FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval) {
-        this(consumer, feedEntriesFinder, interval, Executors.newSingleThreadScheduledExecutor(), true);
-    }
-
-    FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesFinder feedEntriesFinder, final Interval interval, final ScheduledExecutorService scheduledExecutorService, final boolean registerShutdownHook)
+    FeedConsumerScheduler(final FeedConsumer consumer, AvailableFeedEntriesTracker feedEntriesTracker, final Interval interval, final ScheduledExecutorService scheduledExecutorService, final boolean registerShutdownHook, final String feedUrl)
     {
         this.consumer = consumer;
         this.interval = interval;
         this.scheduledExecutorService = scheduledExecutorService;
         this.registerShutdownHook = registerShutdownHook;
+        this.feedUrl = feedUrl;
         this.shutdownProcedure = new ShutdownProcedure(scheduledExecutorService);
-        this.feedEntriesFinder = feedEntriesFinder;
+        this.feedEntriesTracker = feedEntriesTracker;
     }
 
     public void start()
@@ -78,6 +76,8 @@ public class FeedConsumerScheduler
     {
         try
         {
+            LOG.info("Checking feed {} for new entries", feedUrl);
+
             updateTracker();
             consume();
             invocationCounter.getAndIncrement();
@@ -92,15 +92,15 @@ public class FeedConsumerScheduler
     {
         try
         {
-            LOG.info("Running entry-finder");
+            LOG.debug("Running entry-tracker");
 
-            feedEntriesFinder.trackNewEntries();
+            feedEntriesTracker.trackNewEntries();
 
-            LOG.info("entry-finder returned normally");
+            LOG.debug("entry-tracker returned normally");
         }
         catch (final Exception e)
         {
-            LOG.error("entry-finder exception", e);
+            LOG.error("entry-tracker exception", e);
         }
     }
 
@@ -108,11 +108,11 @@ public class FeedConsumerScheduler
     {
         try
         {
-            LOG.info("Invoking feed-consumer");
+            LOG.debug("Invoking feed-consumer");
 
             consumer.consume();
 
-            LOG.info("Feed-consumer returned normally");
+            LOG.debug("Feed-consumer returned normally");
         }
         catch (final Exception e)
         {

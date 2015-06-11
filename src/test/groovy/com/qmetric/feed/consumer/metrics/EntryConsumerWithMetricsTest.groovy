@@ -6,13 +6,14 @@ import com.codahale.metrics.Timer
 import com.qmetric.feed.consumer.EntryConsumer
 import com.qmetric.feed.consumer.EntryId
 import com.qmetric.feed.consumer.TrackedEntry
+import org.joda.time.DateTime
 import spock.lang.Specification
 
 class EntryConsumerWithMetricsTest extends Specification {
 
     final baseName = "base"
 
-    final entry = new TrackedEntry(EntryId.of("1"), 1)
+    final entry = new TrackedEntry(EntryId.of("1"), DateTime.now(), 1)
 
     final metricRegistry = Mock(MetricRegistry)
 

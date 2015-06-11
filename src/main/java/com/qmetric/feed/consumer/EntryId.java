@@ -17,6 +17,21 @@ public class EntryId
         return new EntryId(id);
     }
 
+    public EntryId next()
+    {
+        return new EntryId(String.valueOf(asNumeric() + 1));
+    }
+
+    public EntryId previous()
+    {
+        return new EntryId(String.valueOf(asNumeric() - 1));
+    }
+
+    public long asNumeric()
+    {
+        return Long.valueOf(id);
+    }
+
     @Override public boolean equals(final Object obj)
     {
         return reflectionEquals(this, obj);

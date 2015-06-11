@@ -54,10 +54,19 @@ public class MockFeedHandler extends Route
         }
 
         def page = [_links: [self: [href: "http://localhost:15000/feed?upToEntryId=${upToEntryId}"]], _embedded: [entries: entries]]
+
         if (fromEntryId > 1)
         {
             page._links.next = [href: "http://localhost:15000/feed?upToEntryId=${fromEntryId - 1}"]
         }
+
+        def previousLinkFromEntryId = upToEntryId + pageSize
+
+        if (previousLinkFromEntryId <= feedSize)
+        {
+            page._links.previous = [href: "http://localhost:15000/feed?upToEntryId=${previousLinkFromEntryId}"]
+        }
+
         return toJson(page)
     }
 

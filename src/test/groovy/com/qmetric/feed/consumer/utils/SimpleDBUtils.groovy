@@ -11,7 +11,7 @@ import static junit.framework.Assert.fail
 public class SimpleDBUtils
 {
 
-    private static final Logger log = LoggerFactory.getLogger(SimpleDBUtils)
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleDBUtils)
     private final AmazonSimpleDBClient client
     private static final MAX_RETRY = 100
 
@@ -31,7 +31,7 @@ public class SimpleDBUtils
 
     private void createDomain(String domainName)
     {
-        log.info "Creating domain [${domainName}]"
+        LOG.info "Creating domain [${domainName}]"
         client.createDomain(new CreateDomainRequest(domainName))
     }
 
@@ -45,12 +45,12 @@ public class SimpleDBUtils
             {
                 client.domainMetadata(new DomainMetadataRequest(domainName))
                 domainCreated = true
-                log.info "Domain [${domainName}] created"
+                LOG.info "Domain [${domainName}] created"
             }
             catch (Exception e)
             {
                 count++
-                log.info "${count} waiting for domain [${domainName}] to be available"
+                LOG.info "${count} waiting for domain [${domainName}] to be available"
                 SECONDS.sleep(10)
             }
         }
@@ -60,7 +60,7 @@ public class SimpleDBUtils
 
     public void deleteDomain(final String domainName)
     {
-        log.info "Deleting domain [${domainName}]"
+        LOG.info "Deleting domain [${domainName}]"
         client.deleteDomain(new DeleteDomainRequest(domainName))
     }
 

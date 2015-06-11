@@ -19,21 +19,21 @@ import static java.util.concurrent.TimeUnit.SECONDS
 
 class FeedEndpointFactoryTest extends Specification {
 
-    private static final Logger log = LoggerFactory.getLogger(FeedEndpointFactoryTest)
+    private static final Logger LOG = LoggerFactory.getLogger(FeedEndpointFactoryTest)
     static timeout = new FeedEndpointFactory.ConnectionTimeout(SECONDS, 1)
     private static final int SERVER_PORT = 15001
     private static final String FEED_PATH = "/service-path"
 
     def setupSpec()
     {
-        log.info("Setting up mock hal-feed-server")
+        LOG.info("Setting up mock hal-feed-server")
         Spark.setPort(SERVER_PORT)
         Spark.get(new Route(FEED_PATH) {
             @Override Object handle(final Request request, final Response response)
             {
-                log.info "Making the client wait 3 SECONDS"
+                LOG.info "Making the client wait 3 SECONDS"
                 SECONDS.sleep(3)
-                log.info "Returning"
+                LOG.info "Returning"
                 return null
             }
         })
@@ -61,7 +61,7 @@ class FeedEndpointFactoryTest extends Specification {
     @Timeout(value = 10, unit = SECONDS) def 'throws SocketTimeoutException (read-timeout)'()
     {
         when:
-        new FeedEndpointFactory(ClientBuilder.newClient(), timeout).create("http://localhost:${SERVER_PORT}${FEED_PATH}").get()
+        new FeedEndpointFactory(ClientBuilder.newClient(), timeout).create("http://localhost:${SERVER_PORT}${FEED_PATH}").get().get()
 
         then:
         def exception = thrown(ProcessingException)
@@ -71,7 +71,7 @@ class FeedEndpointFactoryTest extends Specification {
     @Timeout(value = 10, unit = SECONDS) def 'throws ConnectException'()
     {
         when:
-        new FeedEndpointFactory(ClientBuilder.newClient(), timeout).create("http://localhost:15000").get()
+        new FeedEndpointFactory(ClientBuilder.newClient(), timeout).create("http://localhost:15000").get().get()
 
         then:
         def exception = thrown(ProcessingException)

@@ -1,6 +1,7 @@
 package com.qmetric.feed.consumer.store;
 
 import com.qmetric.feed.consumer.EntryId;
+import com.qmetric.feed.consumer.SeenEntry;
 import com.qmetric.feed.consumer.TrackedEntry;
 
 public interface FeedTracker
@@ -9,7 +10,7 @@ public interface FeedTracker
 
     boolean isTracked(EntryId id);
 
-    void track(EntryId id);
+    void track(SeenEntry entry);
 
     Iterable<TrackedEntry> getEntriesToBeConsumed();
 

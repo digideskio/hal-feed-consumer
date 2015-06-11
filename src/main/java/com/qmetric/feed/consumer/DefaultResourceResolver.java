@@ -1,7 +1,10 @@
 package com.qmetric.feed.consumer;
 
+import com.google.common.base.Optional;
 import com.qmetric.hal.reader.HalReader;
 import com.qmetric.hal.reader.HalResource;
+
+import java.io.Reader;
 
 import static java.lang.String.format;
 
@@ -22,9 +25,11 @@ public class DefaultResourceResolver implements ResourceResolver
         this.halReader = halReader;
     }
 
-    @Override public HalResource resolve(final EntryId id)
+    @Override public Optional<HalResource> resolve(final EntryId id)
     {
-        return halReader.read(endpoint.create(buildUrlToFeedEntry(id)).get());
+        final Optional<Reader> reader = endpoint.create(buildUrlToFeedEntry(id)).get();
+
+        return reader.isPresent() ? Optional.of(halReader.read(reader.get())) : Optional.<HalResource>absent();
     }
 
     private String buildUrlToFeedEntry(final EntryId id)
