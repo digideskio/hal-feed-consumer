@@ -1,59 +1,72 @@
 package com.qmetric.feed.consumer;
 
 import com.google.common.base.Optional;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.util.EntityUtils;
 
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response;
-
-import java.io.InputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
+import java.nio.charset.Charset;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.theoryinpractise.halbuilder.api.RepresentationFactory.HAL_JSON;
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static javax.ws.rs.core.Response.Status.OK;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.net.HttpURLConnection.HTTP_OK;
 import static org.apache.commons.lang3.StringUtils.containsIgnoreCase;
 
 public class FeedEndpoint
 {
     private static final String EXPECTED_NOT_FOUND_BODY = "Feed entry not found";
 
-    private final WebTarget target;
+    private final HttpClient client;
 
-    public FeedEndpoint(final WebTarget target)
+    private final String url;
+
+    public FeedEndpoint(final HttpClient client, final String url)
     {
-        this.target = target;
+        this.client = client;
+        this.url = url;
     }
 
     public Optional<Reader> get()
     {
-        final Response response = getResponse();
-
-        if (response.getStatus() == NOT_FOUND.getStatusCode())
+        HttpResponse response = null;
+        try
         {
-            final String notFoundBody = response.readEntity(String.class);
+            final HttpGet httpGet = new HttpGet(url);
+            response = client.execute(httpGet);
+            final int statusCode = response.getStatusLine().getStatusCode();
 
-            checkState(containsIgnoreCase(notFoundBody, EXPECTED_NOT_FOUND_BODY), "unexpected not found body: %s", notFoundBody);
+            check(response.getStatusLine());
+            if (statusCode == HTTP_NOT_FOUND)
+            {
+                final String notFoundBody = EntityUtils.toString(response.getEntity());
+                checkState(containsIgnoreCase(notFoundBody, EXPECTED_NOT_FOUND_BODY), "unexpected not found body: %s", notFoundBody);
+                return Optional.absent();
+            }
 
-            return Optional.absent();
+            String entity = EntityUtils.toString(response.getEntity(), Charset.forName("UTF-8"));
+            return Optional.<Reader>of(new StringReader(entity));
         }
-
-        return Optional.<Reader>of(new InputStreamReader(response.readEntity(InputStream.class)));
+        catch (IOException e)
+        {
+            throw new RuntimeException("Error getting HAL feed: ", e);
+        }
+        finally
+        {
+            if (response != null)
+            {
+                EntityUtils.consumeQuietly(response.getEntity());
+            }
+        }
     }
 
-    private Response getResponse()
+    private void check(final StatusLine status)
     {
-        final Response response = target.request(HAL_JSON).get();
-
-        final Response.Status status = Response.Status.fromStatusCode(response.getStatus());
-        check(status);
-
-        return response;
-    }
-
-    private void check(final Response.Status status)
-    {
-        checkState(status == OK || status == NOT_FOUND, "Endpoint returned [%s: %s]", status.getStatusCode(), status.getReasonPhrase());
+        checkState(status.getStatusCode() == HTTP_OK || status.getStatusCode() == HTTP_NOT_FOUND, "Endpoint returned [%s: %s]", status.getStatusCode(), status.getReasonPhrase());
     }
 }

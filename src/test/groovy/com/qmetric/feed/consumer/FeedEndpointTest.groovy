@@ -1,69 +1,84 @@
 package com.qmetric.feed.consumer
 
+import org.apache.http.HttpEntity
+import org.apache.http.HttpResponse
+import org.apache.http.ProtocolVersion
+import org.apache.http.StatusLine
+import org.apache.http.client.HttpClient
+import org.apache.http.message.BasicStatusLine
 import spock.lang.Specification
 
-import javax.ws.rs.client.Invocation
-import javax.ws.rs.client.WebTarget
-import javax.ws.rs.core.Response
-
-import static javax.ws.rs.core.Response.Status.NOT_FOUND
-import static javax.ws.rs.core.Response.Status.OK
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
 import static org.apache.commons.io.IOUtils.toString
 
-class FeedEndpointTest extends Specification {
+class FeedEndpointTest extends Specification
+{
+    final String url = "url"
+
     def "should send request to endpoint and return response as io reader"()
     {
         given:
         def expectedString = anyNonEmptyString()
-        def inputStream = new ByteArrayInputStream(expectedString.getBytes("UTF-8"))
-        def target = Mock(WebTarget)
-        def invocationBuilder = Mock(Invocation.Builder)
-        def response = Mock(Response)
-        def feedEndpoint = new FeedEndpoint(target)
-        response.getStatus() >> OK.statusCode
+        def httpClient = getMockHttpClient(expectedString)
+        def feedEndpoint = new FeedEndpoint(httpClient, url)
 
         when:
         final reader = feedEndpoint.get()
 
         then:
-        1 * target.request("application/hal+json") >> invocationBuilder
-        1 * invocationBuilder.get() >> response
-        1 * response.readEntity(InputStream) >> inputStream
         expectedString == toString(reader.get())
     }
 
     def 'should return nothing when feed entry does not exist'()
     {
         given:
-        def target = Mock(WebTarget) { t ->
-            t.request(_) >> Mock(Invocation.Builder) { Invocation.Builder b ->
-                b.get() >> Mock(Response) { Response r -> //
-                    r.getStatus() >> NOT_FOUND.statusCode
-                    r.readEntity(String.class) >> "Feed entry not found" }
-            }
-        }
-        def endpoint = new FeedEndpoint(target)
+        def httpClient = getMockHttpClient(404, "NOT FOUND", "Feed entry not found")
+        def feedEndpoint = new FeedEndpoint(httpClient, url)
 
         expect:
-        !endpoint.get().isPresent()
+        !feedEndpoint.get().isPresent()
     }
 
     def 'throws exception when http request fails'()
     {
         given:
-        def target = Mock(WebTarget) { t ->
-            t.request(_) >> Mock(Invocation.Builder) { Invocation.Builder b ->
-                b.get() >> Mock(Response) { Response r -> //
-                    r.getStatus() >> NOT_FOUND.statusCode }
-            }
-        }
-        def endpoint = new FeedEndpoint(target)
+        def httpClient = getMockHttpClient(404, "NOT FOUND", "Another random error")
+        def feedEndpoint = new FeedEndpoint(httpClient, url)
 
         when:
-        endpoint.get()
+        feedEndpoint.get()
 
         then:
         thrown(IllegalStateException)
+    }
+
+    def getMockHttpClient(final String response)
+    {
+        return getMockHttpClient(200, "OK", response)
+    }
+
+    def getMockHttpClient(final int statusCode, final String status)
+    {
+        return getMockHttpClient(statusCode, status, null)
+    }
+
+    def getMockHttpClient(final int statusCode, final String status, final String response)
+    {
+        def httpClient = Mock(HttpClient)
+        def httpResponse = Mock(HttpResponse)
+        def httpEntity = Mock(HttpEntity)
+        def responseStream = new ByteArrayInputStream(response.getBytes())
+
+        httpClient.execute(_) >> httpResponse
+        httpResponse.getStatusLine() >> getStatus(statusCode, status)
+        httpResponse.getEntity() >> httpEntity
+        httpEntity.getContent() >> responseStream
+
+        return httpClient
+    }
+
+    private static StatusLine getStatus(int statusCode, String status)
+    {
+        new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), statusCode, status)
     }
 }
