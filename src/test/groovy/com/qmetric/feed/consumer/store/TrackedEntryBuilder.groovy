@@ -10,6 +10,7 @@ class TrackedEntryBuilder {
 
     private EntryId entryId = EntryId.of(anyNonEmptyString())
     private DateTime created = new DateTime(2011, 1, 10, 12, 0, 0, 0)
+    private DateTime seenAt = null
     private int retries = 0
 
     static TrackedEntryBuilder trackedEntryBuilder() {
@@ -28,6 +29,12 @@ class TrackedEntryBuilder {
         this
     }
 
+    TrackedEntryBuilder withSeenAt(DateTime seenAt) {
+        this.seenAt = seenAt
+
+        this
+    }
+
     TrackedEntryBuilder withRetries(int retries) {
         this.retries = retries
 
@@ -35,6 +42,6 @@ class TrackedEntryBuilder {
     }
 
     TrackedEntry build() {
-        new TrackedEntry(entryId, created, retries)
+        new TrackedEntry(entryId, created, seenAt, retries)
     }
 }

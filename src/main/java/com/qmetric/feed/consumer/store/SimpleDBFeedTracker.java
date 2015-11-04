@@ -68,10 +68,20 @@ public class SimpleDBFeedTracker implements FeedTracker
         {
             final Optional<Attribute> failuresCountAttribute = from(item.getAttributes()).firstMatch(IS_FAILURE_COUNT_ATTR);
             final Optional<Attribute> createdAttribute = from(item.getAttributes()).firstMatch(IS_CREATED_ATTR);
+            final Optional<Attribute> seenAtAttribute = from(item.getAttributes()).firstMatch(IS_SEEN_AT_ATTR);
 
-            return new TrackedEntry(EntryId.of(item.getName()), createdAttribute.isPresent() ? parseDateTime(createdAttribute.get().getValue()) : null, failuresCountAttribute.isPresent() ? Integer.valueOf(failuresCountAttribute.get().getValue()) : 0);
+            return new TrackedEntry(
+                    EntryId.of(item.getName()),
+                    extractDateFromAttribute(createdAttribute),
+                    extractDateFromAttribute(seenAtAttribute),
+                    failuresCountAttribute.isPresent() ? Integer.valueOf(failuresCountAttribute.get().getValue()) : 0
+            );
         }
     };
+
+    private static final DateTime extractDateFromAttribute(Optional<Attribute> attribute) {
+        return attribute.isPresent() ? parseDateTime(attribute.get().getValue()) : null;
+    }
 
     private static final Predicate<Attribute> IS_FAILURE_COUNT_ATTR = new Predicate<Attribute>()
     {
@@ -86,6 +96,14 @@ public class SimpleDBFeedTracker implements FeedTracker
         @Override public boolean apply(final Attribute input)
         {
             return CREATED.equals(input.getName());
+        }
+    };
+
+    private static final Predicate<Attribute> IS_SEEN_AT_ATTR = new Predicate<Attribute>()
+    {
+        @Override public boolean apply(final Attribute input)
+        {
+            return SEEN_AT.equals(input.getName());
         }
     };
 
