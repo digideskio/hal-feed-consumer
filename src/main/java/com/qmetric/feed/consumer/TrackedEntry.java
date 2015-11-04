@@ -19,7 +19,18 @@ public class TrackedEntry
         this.retries = retries;
     }
 
-    @Override public boolean equals(final Object obj)
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TrackedEntry that = (TrackedEntry) o;
+
+        return !(id != null ? !id.equals(that.id) : that.id != null);
+
+    }
+
+    @Deprecated public boolean equals(final EntryId obj)
     {
         return id.equals(obj);
     }
