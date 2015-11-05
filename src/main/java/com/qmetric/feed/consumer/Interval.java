@@ -25,6 +25,10 @@ public class Interval
         return TimeUnit.MILLISECONDS.convert(time, unit);
     }
 
+    public Interval times(int factor) {
+        return new Interval(time * factor, unit);
+    }
+
     @Override
     public boolean equals(final Object obj)
     {
