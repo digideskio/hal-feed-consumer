@@ -4,6 +4,9 @@ import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry
 import com.google.common.base.Optional
+import com.qmetric.feed.consumer.retry.AlwaysRetryingRetryStrategy
+import com.qmetric.feed.consumer.retry.FibonacciDelayingRetryStrategy
+import com.qmetric.feed.consumer.retry.RetryStrategy
 import com.qmetric.feed.consumer.store.FeedTracker
 import com.qmetric.hal.reader.HalReader
 import org.joda.time.DateTime
@@ -11,6 +14,8 @@ import spock.lang.Specification
 
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+
+import static java.util.concurrent.TimeUnit.MINUTES
 
 @SuppressWarnings("GroovyAccessibility")
 class FeedConsumerConfigurationTest extends Specification {
@@ -41,10 +46,10 @@ class FeedConsumerConfigurationTest extends Specification {
     def "should accept polling interval"()
     {
         when:
-        feedConsumerConfiguration.pollForNewEntriesEvery(1, TimeUnit.MINUTES)
+        feedConsumerConfiguration.pollForNewEntriesEvery(1, MINUTES)
 
         then:
-        feedConsumerConfiguration.pollingInterval == new Interval(1, TimeUnit.MINUTES)
+        feedConsumerConfiguration.pollingInterval == new Interval(1, MINUTES)
     }
 
     def "should accept feed tracker"()
@@ -134,7 +139,7 @@ class FeedConsumerConfigurationTest extends Specification {
     def "should allow configuration of polling activity health check"()
     {
         when:
-        feedConsumerConfiguration.withPollingActivityHealthCheck(15, TimeUnit.MINUTES)
+        feedConsumerConfiguration.withPollingActivityHealthCheck(15, MINUTES)
 
         then:
         feedConsumerConfiguration.pollingActivityHealthCheck.isPresent()
@@ -188,5 +193,27 @@ class FeedConsumerConfigurationTest extends Specification {
 
         then:
         feedConsumerConfiguration.registerShutdownHook == registerShutdownHook
+    }
+
+    def "should be able to change default retry strategy"() {
+        given:
+        RetryStrategy customStrategy = Mock(RetryStrategy)
+        assert feedConsumerConfiguration.retryStrategy instanceof AlwaysRetryingRetryStrategy
+
+        when:
+        feedConsumerConfiguration.withCustomRetryStrategy(customStrategy)
+
+        then:
+        feedConsumerConfiguration.retryStrategy == customStrategy
+    }
+
+
+    def "should be able to switch to a predefined delayed retry strategy with base interval"() {
+        when:
+        feedConsumerConfiguration.withIncrementallyDelayingRetryStrategy(2, MINUTES)
+
+        then:
+        feedConsumerConfiguration.retryStrategy instanceof FibonacciDelayingRetryStrategy
+        ((FibonacciDelayingRetryStrategy) feedConsumerConfiguration.retryStrategy).baseInterval == new Interval(2, MINUTES)
     }
 }

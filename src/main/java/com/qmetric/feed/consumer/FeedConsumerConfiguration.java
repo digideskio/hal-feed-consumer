@@ -11,6 +11,7 @@ import com.qmetric.feed.consumer.metrics.FeedConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.FeedTrackerConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.PollingActivityHealthCheck;
 import com.qmetric.feed.consumer.retry.AlwaysRetryingRetryStrategy;
+import com.qmetric.feed.consumer.retry.FibonacciDelayingRetryStrategy;
 import com.qmetric.feed.consumer.retry.RetryStrategy;
 import com.qmetric.feed.consumer.retry.RetryStrategyAwareEntryConsumer;
 import com.qmetric.feed.consumer.store.FeedTracker;
@@ -70,6 +71,8 @@ public class FeedConsumerConfiguration
     private boolean registerShutdownHook = true;
 
     private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+
+    private RetryStrategy retryStrategy = defaultRetryStrategy();
 
     public FeedConsumerConfiguration(final String name)
     {
@@ -204,6 +207,21 @@ public class FeedConsumerConfiguration
         return this;
     }
 
+    public FeedConsumerConfiguration withCustomRetryStrategy(RetryStrategy retryStrategy)
+    {
+        this.retryStrategy = retryStrategy;
+
+        return this;
+    }
+
+
+    public FeedConsumerConfiguration withIncrementallyDelayingRetryStrategy(final long interval, final TimeUnit intervalUnit)
+    {
+        this.retryStrategy = new FibonacciDelayingRetryStrategy(new Interval(interval, intervalUnit));
+
+        return this;
+    }
+
     public HealthCheckRegistry getHealthCheckRegistry()
     {
         return healthCheckRegistry;
@@ -244,12 +262,12 @@ public class FeedConsumerConfiguration
         DateTimeSource dateTimeSource = new DateTimeSource();
         return new RetryStrategyAwareEntryConsumer(
                 new EntryConsumerWithMetrics(name, metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries, missingEntriesTimeout, dateTimeSource)),
-                retryStrategy(),
+                retryStrategy,
                 dateTimeSource
         );
     }
 
-    private RetryStrategy retryStrategy() {
+    private RetryStrategy defaultRetryStrategy() {
         return new AlwaysRetryingRetryStrategy();
     }
 

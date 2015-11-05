@@ -23,4 +23,17 @@ class IntervalTest extends Specification {
         then:
         thrown(RuntimeException)
     }
+
+    def "should create copy of itself multiplied by a given factor"() {
+        given:
+        Interval interval = new Interval(5, TimeUnit.MINUTES)
+        long originalIntervalInMillis = interval.asMillis()
+
+        when:
+        Interval newInterval = interval.times(4)
+
+        then:
+        interval.asMillis() == originalIntervalInMillis
+        newInterval.asMillis() == originalIntervalInMillis * 4
+    }
 }
