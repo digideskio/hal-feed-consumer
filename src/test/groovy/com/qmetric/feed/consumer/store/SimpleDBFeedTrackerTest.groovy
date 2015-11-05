@@ -1,5 +1,4 @@
 package com.qmetric.feed.consumer.store
-
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.simpledb.AmazonSimpleDB
 import com.amazonaws.services.simpledb.model.*
@@ -10,9 +9,8 @@ import com.qmetric.feed.consumer.TrackedEntry
 import org.joda.time.DateTime
 import spock.lang.Specification
 
-import static com.google.common.collect.Iterables.size
+import static com.qmetric.feed.consumer.store.TrackedEntryBuilder.trackedEntryBuilder
 import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
-import static net.java.quickcheck.generator.PrimitiveGeneratorsIterables.someObjects
 import static org.apache.commons.lang3.StringUtils.isBlank
 
 class SimpleDBFeedTrackerTest extends Specification {
@@ -41,7 +39,7 @@ class SimpleDBFeedTrackerTest extends Specification {
         dateTimeSource.now() >> CURRENT_DATE
     }
 
-    def "should store entry with consuming state only if not already consuming"()
+    def "should try to store entry with consuming state"()
     {
         when:
         consumedEntryStore.markAsConsuming(feedEntryId)
@@ -51,48 +49,81 @@ class SimpleDBFeedTrackerTest extends Specification {
             assert r.domainName == domain
             assert r.itemName == itemName(feedEntryId)
             assert r.attributes.size() == 1
-            def attribute = r.attributes.get(0)
-            assert attribute.name == CONSUMING
-            assert !isBlank(attribute.value)
-            assert r.expected.name == CONSUMING
-            assert r.expected.exists == false
+            r.attributes.get(0).with {
+                assert name == CONSUMING
+                assert !isBlank(value)
+            }
+            r.expected.with {
+                assert name == CONSUMING
+                assert !exists
+            }
         }
     }
 
-    def "should throw AlreadyConsumingException when attempting to set consuming state for entry already being consumed by another consumer"()
+    def "should finish silently if NO conditional check problems experienced"()
     {
+        given: "simpleDBClient puts attributes without any problems"
+        simpleDBClient.putAttributes(_) >> {}
+
         when:
         consumedEntryStore.markAsConsuming(feedEntryId)
 
         then:
-        1 * simpleDBClient.putAttributes(_) >> {
-            final error = new AmazonServiceException("Conditional check failed. Attribute (consuming) value exists")
-            error.setErrorCode("ConditionalCheckFailed")
-            throw error
+        noExceptionThrown()
+    }
+
+    def "should throw AlreadyConsumingException when attempting to set consuming state for entry already being consumed by another consumer"()
+    {
+        given: "simpleDBClient experienced some problems when putting the attributes"
+        simpleDBClient.putAttributes(_) >> {
+            final conditionalCheckFailed = new AmazonServiceException("Conditional check failed. Attribute (consuming) value exists")
+            conditionalCheckFailed.setErrorCode("ConditionalCheckFailed")
+            throw conditionalCheckFailed
         }
+
+        when:
+        consumedEntryStore.markAsConsuming(feedEntryId)
+
+        then:
         thrown(AlreadyConsumingException)
     }
 
-    def 'fail should increment fail count and remove "consuming" attribute'()
+    def 'fail should remove "consuming" attribute regardless whether retry is scheduled or not'()
     {
+        given:
+        final TrackedEntry trackedEntry = trackedEntryBuilder().withEntryId(feedEntryId).build()
+
         when:
-        consumedEntryStore.fail(new TrackedEntry(feedEntryId, CURRENT_DATE, initial_count), true)
+        consumedEntryStore.fail(trackedEntry, scheduleRetry)
+
+        then:
+        1 * simpleDBClient.deleteAttributes(_ as DeleteAttributesRequest) >> { DeleteAttributesRequest r ->
+            assert r.domainName == domain
+            assert r.itemName == feedEntryId.toString()
+            assert r.attributes.name == [CONSUMING]
+        }
+
+        where:
+        scheduleRetry << [true, false]
+    }
+
+    def 'fail with scheduledRetry set should increment fail count'()
+    {
+        given:
+        final boolean scheduleRetry = true
+        final TrackedEntry trackedEntry = trackedEntryBuilder()
+                .withEntryId(feedEntryId)
+                .withRetries(initial_count)
+                .build()
+
+        when:
+        consumedEntryStore.fail(trackedEntry, scheduleRetry)
 
         then: 'increment failures count and update seen_at date'
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest it ->
             assert it.domainName == domain
             assert it.itemName == feedEntryId.toString()
-            assert it.attributes.size() == 2
-            assert it.attributes.contains(expectedFailureCountAttribute)
-            assert it.attributes.contains(expectedSeenAtAttribute)
-        }
-
-        and: 'revert consuming'
-        1 * simpleDBClient.deleteAttributes(_ as DeleteAttributesRequest) >> { DeleteAttributesRequest r ->
-            assert r.domainName == domain
-            assert r.itemName == feedEntryId.toString()
-            assert r.attributes.size() == 1
-            assert r.attributes.get(0).getName() == CONSUMING
+            assert it.attributes == [expectedFailureCountAttribute, expectedSeenAtAttribute]
         }
 
         where:
@@ -103,28 +134,23 @@ class SimpleDBFeedTrackerTest extends Specification {
 
         expectedFailureCountAttribute = new ReplaceableAttribute(FAILURES_COUNT, incremented_count.toString(), true)
         expectedSeenAtAttribute = new ReplaceableAttribute(SEEN_AT, CURRENT_DATE_STRING, true)
-        initialFailureCountAttribute = initial_count == null ? null : new Attribute(FAILURES_COUNT, initial_count.toString())
     }
 
-    def 'fail should abort further retries if max retries exceeded'()
+    def 'fail WITHOUT scheduledRetry set should abort further retries'()
     {
         given:
+        final boolean scheduleRetry = false
+        final TrackedEntry trackedEntry = trackedEntryBuilder().withEntryId(feedEntryId).build()
         final expectedAbortedAttribute = new ReplaceableAttribute("aborted", CURRENT_DATE_STRING, true)
 
         when:
-        consumedEntryStore.fail(new TrackedEntry(feedEntryId, CURRENT_DATE, 0), false)
+        consumedEntryStore.fail(trackedEntry, scheduleRetry)
 
-        then: 'increment failures count and update seen_at date'
+        then:
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest it ->
             assert it.domainName == domain
             assert it.itemName == feedEntryId.toString()
-            assert it.attributes.size() == 1
-            assert it.attributes.contains(expectedAbortedAttribute)
-        }
-
-        and: 'revert consuming'
-        1 * simpleDBClient.deleteAttributes(_ as DeleteAttributesRequest) >> { DeleteAttributesRequest r ->
-            assert r.attributes.get(0).getName() == CONSUMING
+            assert it.attributes == [expectedAbortedAttribute]
         }
     }
 
@@ -137,10 +163,7 @@ class SimpleDBFeedTrackerTest extends Specification {
         simpleDBClient.putAttributes(_) >> { PutAttributesRequest r ->
             assert r.domainName == domain
             assert r.itemName == feedEntryId.toString()
-            assert r.attributes.size() == 1
-            def attribute = r.attributes.get(0)
-            assert attribute.name == "consumed"
-            assert !isBlank(attribute.value)
+            assert r.attributes == [new ReplaceableAttribute().withName("consumed").withValue(CURRENT_DATE_STRING).withReplace(true)]
         }
     }
 
@@ -148,40 +171,43 @@ class SimpleDBFeedTrackerTest extends Specification {
     {
         given:
         final dateTime = new DateTime(2015, 5, 1, 12, 0, 0, 0)
+        final SeenEntry seenEntry = new SeenEntry(feedEntryId, dateTime)
 
         when:
-        consumedEntryStore.track(new SeenEntry(feedEntryId, dateTime))
+        consumedEntryStore.track(seenEntry)
 
         then:
         1 * simpleDBClient.putAttributes(_ as PutAttributesRequest) >> { PutAttributesRequest r ->
             assert r.itemName == feedEntryId.toString()
-            assert r.attributes.get(0) == new ReplaceableAttribute("created", "2015/05/01 12:00:00", false)
-            assert r.attributes.get(1) == new ReplaceableAttribute("seen_at", "2015/05/01 12:00:00", true)
+            assert r.attributes == [
+                    new ReplaceableAttribute().withName("created").withValue("2015/05/01 12:00:00").withReplace(false),
+                    new ReplaceableAttribute().withName("seen_at").withValue("2015/05/01 12:00:00").withReplace(true)
+            ]
         }
     }
 
     def 'should return whether entry is tracked or not'()
     {
+        given:
+        simpleDBClient.select(_ as SelectRequest) >> new SelectResult().withItems(returnedItems)
+
         when:
         final isTracked = consumedEntryStore.isTracked(feedEntryId)
 
         then:
-        1 * simpleDBClient.select(_ as SelectRequest) >> new SelectResult().withItems(returnedItems)
-        isTracked == expected
+        isTracked == shouldSayItsTracked
 
         where:
-        returnedItems | expected
-        []            | false
-        [new Item()]  | true
+        returnedItems            | shouldSayItsTracked
+        []                       | false
+        [new Item()]             | true
+        [new Item(), new Item()] | true
     }
 
-    def "should return list of unconsumed entries"()
+    def "should ask simple db client about unconsumed entries"()
     {
-        given:
-        def items = someItems()
-
         when:
-        def notConsumedResult = consumedEntryStore.getEntriesToBeConsumed()
+        consumedEntryStore.getEntriesToBeConsumed()
 
         then:
         1 * simpleDBClient.select(_) >> { SelectRequest r ->
@@ -189,9 +215,30 @@ class SimpleDBFeedTrackerTest extends Specification {
             assert whereCondition.contains('aborted')
             assert whereCondition.contains('consuming')
             assert whereCondition.contains('consumed')
-            return new SelectResult().withItems(items)
+            return new SelectResult().withItems([])
         }
-        size(notConsumedResult) == size(items)
+    }
+
+    def "should return entries to be consumed as a collection of TrackedEntry"()
+    {
+        given:
+        def items = [
+                new Item().withName("foo").withAttributes(
+                        new Attribute("created", CURRENT_DATE_STRING)
+                ),
+                new Item().withName("bar").withAttributes(
+                        new Attribute("failures_count", "2")
+                )
+        ]
+        simpleDBClient.select(_) >> new SelectResult().withItems(items)
+
+        when:
+        def notConsumedResult = consumedEntryStore.getEntriesToBeConsumed()
+
+        then:
+        notConsumedResult.toList().id == [EntryId.of("foo"), EntryId.of("bar")]
+        notConsumedResult.toList().retries == [0 , 2]
+        notConsumedResult.toList().created == [CURRENT_DATE, null]
     }
 
     def "should know when connectivity to store is healthy"()
@@ -205,17 +252,14 @@ class SimpleDBFeedTrackerTest extends Specification {
 
     def "should know when connectivity to store is unhealthy"()
     {
+        given:
+        simpleDBClient.domainMetadata(new DomainMetadataRequest(domain)) >> { throw new Exception() }
+
         when:
         consumedEntryStore.checkConnectivity()
 
         then:
-        1 * simpleDBClient.domainMetadata(new DomainMetadataRequest(domain)) >> { throw new Exception() }
         thrown(ConnectivityException)
-    }
-
-    private static List<Item> someItems()
-    {
-        someObjects().collect { new Item() }
     }
 
     private static String itemName(final EntryId entry)
