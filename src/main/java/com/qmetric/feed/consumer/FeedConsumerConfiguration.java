@@ -10,6 +10,9 @@ import com.qmetric.feed.consumer.metrics.FeedConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.FeedConsumerWithMetrics;
 import com.qmetric.feed.consumer.metrics.FeedTrackerConnectivityHealthCheck;
 import com.qmetric.feed.consumer.metrics.PollingActivityHealthCheck;
+import com.qmetric.feed.consumer.retry.AlwaysRetryingRetryStrategy;
+import com.qmetric.feed.consumer.retry.RetryStrategy;
+import com.qmetric.feed.consumer.retry.RetryStrategyAwareEntryConsumer;
 import com.qmetric.feed.consumer.store.FeedTracker;
 import com.qmetric.hal.reader.HalReader;
 import org.apache.http.client.HttpClient;
@@ -236,9 +239,18 @@ public class FeedConsumerConfiguration
         return new FeedConsumerWithMetrics(name, metricRegistry, consumer);
     }
 
-    private EntryConsumerWithMetrics entryConsumer()
+    private EntryConsumer entryConsumer()
     {
-        return new EntryConsumerWithMetrics(name, metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries, missingEntriesTimeout, new DateTimeSource()));
+        DateTimeSource dateTimeSource = new DateTimeSource();
+        return new RetryStrategyAwareEntryConsumer(
+                new EntryConsumerWithMetrics(name, metricRegistry, new EntryConsumerImpl(feedTracker, consumeAction, resourceResolver(), entryConsumerListeners, maxRetries, missingEntriesTimeout, dateTimeSource)),
+                retryStrategy(),
+                dateTimeSource
+        );
+    }
+
+    private RetryStrategy retryStrategy() {
+        return new AlwaysRetryingRetryStrategy();
     }
 
     private ResourceResolver resourceResolver()

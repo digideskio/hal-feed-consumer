@@ -10,11 +10,15 @@ class TrackedEntryBuilder {
 
     private EntryId entryId = EntryId.of(anyNonEmptyString())
     private DateTime created = new DateTime(2011, 1, 10, 12, 0, 0, 0)
-    private DateTime seenAt = null
+    private DateTime seenAt = new DateTime(2011, 1, 10, 12, 0, 0, 0)
     private int retries = 0
 
     static TrackedEntryBuilder trackedEntryBuilder() {
         new TrackedEntryBuilder()
+    }
+
+    static TrackedEntry buildEntryThatNeverFailedYet() {
+        trackedEntryBuilder().withNoRetries().withNonEmptySeenAt().build()
     }
 
     TrackedEntryBuilder withEntryId(EntryId entryId) {
@@ -33,6 +37,14 @@ class TrackedEntryBuilder {
         this.seenAt = seenAt
 
         this
+    }
+
+    TrackedEntryBuilder withNonEmptySeenAt() {
+        withSeenAt(DateTime.now())
+    }
+
+    TrackedEntryBuilder withNoRetries() {
+        withRetries(0)
     }
 
     TrackedEntryBuilder withRetries(int retries) {

@@ -48,7 +48,6 @@ public class FeedConsumerImpl implements FeedConsumer
         {
             try
             {
-                LOG.info("Consuming entry {}", trackedEntry);
                 entryConsumer.consume(trackedEntry);
             }
             catch (AlreadyConsumingException e)
