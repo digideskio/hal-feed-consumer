@@ -4,6 +4,7 @@ import com.codahale.metrics.health.HealthCheck;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.HttpClientUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,18 +26,19 @@ public class FeedConnectivityHealthCheck extends HealthCheck
         this.client = client;
     }
 
-    @Override protected Result check() throws Exception
-    {
-        final HttpGet httpGet = new HttpGet(feedPingUrl);
-        final HttpResponse response = client.execute(httpGet);
-        final int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode == HTTP_OK)
-        {
-            return healthy("Ping was successful to %s", feedPingUrl);
-        }
-        else
-        {
-            return unhealthy("Unhealthy with status %s", statusCode);
+    @Override protected Result check() throws Exception {
+        HttpResponse response = null;
+        try {
+            final HttpGet httpGet = new HttpGet(feedPingUrl);
+            response = client.execute(httpGet);
+            final int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode == HTTP_OK) {
+                return healthy("Ping was successful to %s", feedPingUrl);
+            } else {
+                return unhealthy("Unhealthy with status %s", statusCode);
+            }
+        } finally {
+            HttpClientUtils.closeQuietly(response);
         }
     }
 
