@@ -1,4 +1,4 @@
-package com.qmetric.feed.consumer.store;
+package com.qmetric.feed.consumer.store.simpledb;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.simpledb.AmazonSimpleDB;
@@ -20,6 +20,9 @@ import com.qmetric.feed.consumer.DateTimeSource;
 import com.qmetric.feed.consumer.EntryId;
 import com.qmetric.feed.consumer.SeenEntry;
 import com.qmetric.feed.consumer.TrackedEntry;
+import com.qmetric.feed.consumer.store.AlreadyConsumingException;
+import com.qmetric.feed.consumer.store.ConnectivityException;
+import com.qmetric.feed.consumer.store.FeedTracker;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;

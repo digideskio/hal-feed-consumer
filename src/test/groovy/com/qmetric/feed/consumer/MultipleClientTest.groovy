@@ -3,7 +3,7 @@ package com.qmetric.feed.consumer
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.base.Optional
-import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
+import com.qmetric.feed.consumer.store.simpledb.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
 import com.qmetric.hal.reader.HalResource
 import com.theoryinpractise.halbuilder.AbstractRepresentationFactory

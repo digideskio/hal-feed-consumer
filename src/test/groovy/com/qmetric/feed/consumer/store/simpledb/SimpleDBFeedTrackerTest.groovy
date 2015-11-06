@@ -1,4 +1,5 @@
-package com.qmetric.feed.consumer.store
+package com.qmetric.feed.consumer.store.simpledb
+
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.simpledb.AmazonSimpleDB
 import com.amazonaws.services.simpledb.model.*
@@ -6,6 +7,8 @@ import com.qmetric.feed.consumer.DateTimeSource
 import com.qmetric.feed.consumer.EntryId
 import com.qmetric.feed.consumer.SeenEntry
 import com.qmetric.feed.consumer.TrackedEntry
+import com.qmetric.feed.consumer.store.AlreadyConsumingException
+import com.qmetric.feed.consumer.store.ConnectivityException
 import org.joda.time.DateTime
 import spock.lang.Specification
 

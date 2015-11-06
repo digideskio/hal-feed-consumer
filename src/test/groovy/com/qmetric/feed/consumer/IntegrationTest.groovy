@@ -3,7 +3,7 @@ package com.qmetric.feed.consumer
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.amazonaws.services.simpledb.model.Item
 import com.qmetric.feed.consumer.store.FeedTracker
-import com.qmetric.feed.consumer.store.SimpleDBFeedTracker
+import com.qmetric.feed.consumer.store.simpledb.SimpleDBFeedTracker
 import com.qmetric.feed.consumer.utils.MockEntryHandler
 import com.qmetric.feed.consumer.utils.MockFeedHandler
 import com.qmetric.feed.consumer.utils.SimpleDBUtils
