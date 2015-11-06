@@ -7,6 +7,7 @@ import com.qmetric.feed.consumer.store.AlreadyConsumingException;
 import com.qmetric.feed.consumer.store.ConnectivityException;
 import com.qmetric.feed.consumer.store.FeedTracker;
 
+// TODO: Implement and use for testing (reference implementation)
 public class InMemoryFeedTracker implements FeedTracker {
     @Override
     public void checkConnectivity() throws ConnectivityException {
