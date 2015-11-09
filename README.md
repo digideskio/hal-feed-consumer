@@ -18,7 +18,7 @@ Usage
 -----
 
 First, configure a data store used by the consumer to track which feed entries have already been consumed.
-An [Amazon SimpleDB](http://aws.amazon.com/simpledb/) based implementation is supplied as part of this library (see below for alternative implementations including for Mysql):
+An [Amazon SimpleDB](http://aws.amazon.com/simpledb/) based implementation or similar has to be supplied (see below for alternative implementations including for Mysql):
 
 ```java
 final AmazonSimpleDB simpleDBClient = new AmazonSimpleDBClient(new BasicAWSCredentials("access key", "secret key"));

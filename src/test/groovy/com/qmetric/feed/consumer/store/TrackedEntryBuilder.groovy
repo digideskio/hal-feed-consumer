@@ -4,11 +4,9 @@ import com.qmetric.feed.consumer.EntryId
 import com.qmetric.feed.consumer.TrackedEntry
 import org.joda.time.DateTime
 
-import static net.java.quickcheck.generator.PrimitiveGeneratorSamples.anyNonEmptyString
-
 class TrackedEntryBuilder {
 
-    private EntryId entryId = EntryId.of(anyNonEmptyString())
+    private EntryId entryId = EntryId.of("123")
     private DateTime created = new DateTime(2011, 1, 10, 12, 0, 0, 0)
     private DateTime seenAt = new DateTime(2011, 1, 10, 12, 0, 0, 0)
     private int retries = 0
