@@ -56,8 +56,8 @@ Library available from [Maven central repository](http://search.maven.org/)
 Feed tracker implementations
 ------------------------------
 
-* Built into this library Amazon SimpleDB  (if choosing this option, note SimpleDB limit of 10GB per domain)
 * Mysql https://github.com/qmetric/hal-feed-consumer-mysql
+* Amazon SimpleDB https://github.com/qmetric/hal-feed-consumer-simpledb
 
 
 Health checks and metrics
