@@ -34,7 +34,7 @@ public class InMemoryFeedTracker implements FeedTracker {
     @Override
     public void track(SeenEntry entry) {
         if(!isTracked(entry.id)) {
-            Item item = new Item(toTrackedEntry(entry.id), Status.SEEN, dateTimeSource.now());
+            Item item = new Item(toTrackedEntry(entry), Status.SEEN, dateTimeSource.now());
             items.put(item.getEntryId(), item);
         }
     }
@@ -75,8 +75,8 @@ public class InMemoryFeedTracker implements FeedTracker {
         items.put(trackedEntry.id, new Item(updatedEntry, nextStatus, dateTimeSource.now()));
     }
 
-    private TrackedEntry toTrackedEntry(EntryId entryId) {
-        return new TrackedEntry(entryId, dateTimeSource.now(), dateTimeSource.now(), 0);
+    private TrackedEntry toTrackedEntry(SeenEntry entry) {
+        return new TrackedEntry(entry.id, entry.dateTime, dateTimeSource.now(), 0);
     }
 
     private enum Status {
