@@ -47,7 +47,7 @@ public class ClientBuilder
         {
             CredentialsProvider credsProvider = new BasicCredentialsProvider();
             credsProvider.setCredentials(
-                    new AuthScope("localhost", 443),
+                    AuthScope.ANY,
                     new UsernamePasswordCredentials(credentials.username, credentials.password));
             clientBuilder.setDefaultCredentialsProvider(credsProvider);
         }
